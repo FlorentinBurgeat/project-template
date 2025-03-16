@@ -11,6 +11,6 @@ export class User {
     @Property()
     password!: string; // Stocker les mots de passe hashés
 
-    @Property({ type: DateType, default: 'now' })
-    createdAt = new Date();
+    @Property({ type: DateType, onCreate: () => new Date() })
+    createdAt?: Date;
 }

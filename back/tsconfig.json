@@ -16,7 +16,11 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+    "paths": {
+      "~/*": ["src/*"],
+      "~entities/*": ["src/db/entities/*"]
+    }
   }, 
   "watchOptions": {
     // Use a dynamic polling instead of systems's native events for file changes

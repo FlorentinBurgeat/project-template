@@ -1,0 +1,18 @@
+# Utiliser une image Node.js
+FROM node:22
+
+# Définir le répertoire de travail
+WORKDIR /app
+
+# Copier tout le dossier de développement dans le working directory
+COPY . .
+
+# Installer les dépendances
+RUN npm install -g pnpm && pnpm install --frozen-lockfile
+
+# Exposer le port de l'API
+EXPOSE 3000
+
+#DEMARRER l'APPLICATION
+CMD ["pnpm", "start"]
+

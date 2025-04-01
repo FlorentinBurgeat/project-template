@@ -1,9 +1,8 @@
 import { defineConfig } from '@mikro-orm/postgresql';
 import { User } from './src/db/entities/user.entity';
 import { Migrator } from '@mikro-orm/migrations';
-
-import dotenv from 'dotenv';
-dotenv.config();
+import { config } from 'dotenv';
+config();
 
 export default defineConfig({
     entities: [User],

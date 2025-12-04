@@ -1,244 +1,134 @@
-# Project Rules
+# CLAUDE.md - Project Template
 
-<project>
-  <description>
-    Template de projet  Web Full-stack permettant de lancer de générer de nouveaux projets avec les features de bases déjà implémentées.
-  </description>
-  <packages>
-    <package name="back">Back-end implémenté en 
-  </packages>
-  # FocusFlow – Feature Planning (Spécifications)
+## Project Overview
 
-FocusFlow est une application de gestion de tâches basée sur la méthode GTD (Getting Things Done).
+**project-template** is a production-ready full-stack template designed to kickstart any new web application project. It provides a solid foundation with complete authentication, modular architecture, and integrated development best practices.
 
-## Catégories de tâches (GTD)
+### Purpose
+Eliminate initial project setup time by providing a proven, configured, and functional structure from day one. Developers can clone this template and immediately focus on business features.
 
-- **Inbox** : tâches brutes à trier
-- **Next Actions** : tâches à réaliser prochainement
-- **Projects** : tâches faisant partie de projets à plusieurs étapes
-- **Waiting For** : tâches déléguées, en attente d'une action externe
-- **Someday/Maybe** : idées ou tâches possibles, un jour
-- **Calendar** : tâches liées à des dates précises
+> **Note**: This project contains additional CLAUDE.md files in `/backend` and `/frontend` directories with architecture-specific details.
 
-_(Pour ce tutoriel, nous simplifierons avec une liste générale)_
+---
 
-## Fonctionnalités Clés
+## Tech Stack
 
-- Ajouter une nouvelle tâche (champ + bouton "Ajouter")
-- Lister toutes les tâches
-- Marquer une tâche comme terminée (checkbox)
-- Modifier le titre d'une tâche
-- **UI/UX** : interface minimaliste, responsive (mobile-first)
-- **Persistance** : Zustand + localStorage
+### Frontend
+- **Framework**: Vue 3 (Composition API)
+- **Routing**: Vue Router
+- **State Management**: Singleton composables (ref/reactive, no Pinia)
+- **HTTP Client**: TanStack Query
+- **Design System**: ShadCN + Tailwind CSS
+- **Build Tool**: Vite
 
-## Stack Technique
+### Backend
+- **Language**: Kotlin
+- **Framework**: Spring Boot
+- **Build Tool**: Maven
+- **ORM**: Exposed
+- **Database**: PostgreSQL
+- **Migrations**: Flyway
+- **Authentication**: JWT (with refresh tokens)
+- **SSO**: OpenID Connect (Google, Facebook, extensible)
 
-- **Frontend** : React + TypeScript + Tailwind CSS + Zustand
-- **Tests** : Playwright MCP via Cursor
-- **Backend** : Express.js (optionnel)
+### DevOps
+- **Containerization**: Docker + Docker Compose
+- **Configuration**: Environment variables
 
-    </context>
-  </project>
-  <ClaudeConfig>
-    <Overview>
-      <Description>
-        This configuration provides guidance to Claude Code (claude.ai/code)
-        when working with code in this repository.
-      </Description>
-      <Project>
-        <Type>Fullstack monorepo template</Type>
-        <Backends>
-          <Implementation>NestJS + Fastify</Implementation>
-          <Implementation>Kotlin + Spring Boot</Implementation>
-        </Backends>
-        <Frontends>
-          <Frontend placeholder="true" />
-          <Mobile placeholder="true" />
-        </Frontends>
-      </Project>
-    </Overview>
+---
 
-    <RepositoryStructure>
-      <Directory name="back" description="NestJS backend with Fastify adapter (primary backend implementation)" />
-      <Directory name="back-kotlin" description="Spring Boot + Kotlin backend (alternative implementation)" />
-      <Directory name="front" description="Frontend application (empty placeholder)" />
-      <Directory name="mobile" description="Mobile application (empty placeholder)" />
-    </RepositoryStructure>
+## Authentication Flow
 
-    <Backend name="NestJS">
-      <TechnologyStack>
-        <Framework>NestJS (Fastify adapter)</Framework>
-        <ORM>MikroORM with PostgreSQL</ORM>
-        <Authentication>JWT (Passport)</Authentication>
-        <PackageManager>pnpm</PackageManager>
-        <Validation>class-validator, class-transformer</Validation>
-      </TechnologyStack>
+### Classic Registration & Login
+1. User registers with email and password
+2. Backend returns JWT access token + refresh token
+3. Frontend stores tokens (localStorage/cookies depending on implementation)
+4. All requests to protected endpoints include token in `Authorization: Bearer <token>` header
 
-      <Commands>
-        <Category name="Setup">
-          <Command>cd back</Command>
-          <Command>pnpm install</Command>
-        </Category>
-        <Category name="Development">
-          <Command>pnpm run start:dev</Command>
-          <Command>pnpm run start:debug</Command>
-        </Category>
-        <Category name="BuildAndProduction">
-          <Command>pnpm run build</Command>
-          <Command>pnpm run start:prod</Command>
-        </Category>
-        <Category name="Testing">
-          <Command>pnpm run test</Command>
-          <Command>pnpm run test:watch</Command>
-          <Command>pnpm run test:e2e</Command>
-          <Command>pnpm run test:cov</Command>
-        </Category>
-        <Category name="LintingAndFormatting">
-          <Command>pnpm run lint</Command>
-          <Command>pnpm run format</Command>
-        </Category>
-        <Category name="Database">
-          <Command>pnpm run db:create</Command>
-          <Command>pnpm run db:drop</Command>
-          <Command>pnpm run db:update</Command>
-          <Command>pnpm run db:reset</Command>
-          <Command>pnpm run db:generate</Command>
-          <Command>pnpm run db:create-migration</Command>
-          <Command>pnpm run db:migrate</Command>
-          <Command>pnpm run db:rollback</Command>
-        </Category>
-        <Category name="Docker">
-          <Command>docker-compose up -d</Command>
-          <Command>docker-compose down</Command>
-        </Category>
-      </Commands>
+### Refresh Token
+When access token expires, frontend automatically uses refresh token to obtain a new access token without re-requesting credentials.
 
-      <Architecture>
-        <ModuleOrganization>
-          <Module name="AppModule" description="Root module that imports MikroORM and AuthModule" />
-          <Module name="AuthModule" description="Authentication feature module">
-            <Subdir name="controllers" />
-            <Subdir name="services" />
-            <Subdir name="strategies" />
-            <Subdir name="guards" />
-            <Subdir name="dto" />
-            <Subdir name="interfaces" />
-          </Module>
-        </ModuleOrganization>
+### SSO (OpenID Connect)
+The system is designed to support SSO providers (Google, Facebook, etc.) via OpenID Connect. Infrastructure is ready, full implementation can be added as needed.
 
-        <DatabaseLayer>
-          <Entities path="src/db/entities/" />
-          <Configuration file="mikro-orm.config.ts" />
-          <Migrations path="migrations/" />
-          <Note>MikroORM uses EntityManager (Unit of Work pattern)</Note>
-        </DatabaseLayer>
+---
 
-        <AuthenticationFlow>
-          <Step>Registration/Login via AuthController</Step>
-          <Step>Passwords hashed with bcrypt (10 rounds)</Step>
-          <Step>JWT tokens issued (1 day expiration)</Step>
-          <Step>JWT strategy validates and attaches user</Step>
-          <Step>Protected routes use JwtAuthGuard</Step>
-          <Step>Current user via @CurrentUser()</Step>
-        </AuthenticationFlow>
+## Configuration & Deployment
 
-        <FastifyAdapter note="Fastify used instead of Express for performance" />
-      </Architecture>
+### Docker
+The project includes a `docker-compose.yml` to launch the entire stack (frontend, backend, PostgreSQL) with a single command. Goal: any developer can clone the repo and launch the application in minutes.
 
-      <EnvironmentConfiguration>
-        <File name=".env" reference=".env.template" />
-        <Variables>
-          <Docker>
-            <DatabaseContainer>template_db</DatabaseContainer>
-            <PgAdminContainer>pgadmin</PgAdminContainer>
-            <BackendContainer>template_api</BackendContainer>
-          </Docker>
-          <PgAdmin>
-            <Email>your@email.com</Email>
-            <Password>admin</Password>
-            <Port>5050</Port>
-          </PgAdmin>
-          <PostgreSQL>
-            <User>postgres</User>
-            <Password>motdepasse</Password>
-            <Database>wishlist_db</Database>
-            <Host>database</Host>
-            <Port>5432</Port>
-          </PostgreSQL>
-          <Application>
-            <Port>3000</Port>
-          </Application>
-          <JWT>
-            <Secret>your_jwt_secret_key</Secret>
-          </JWT>
-        </Variables>
-      </EnvironmentConfiguration>
+### Environment Variables
+The project uses environment variables for all sensitive or environment-specific configuration:
+- Database credentials
+- JWT secrets
+- Service URLs
+- SSO configuration (client IDs, secrets)
+- Etc.
 
-      <DatabaseWorkflow>
-        <Step>Create or modify entities</Step>
-        <Step>Generate migration (pnpm run db:generate)</Step>
-        <Step>Review migration in /migrations</Step>
-        <Step>Run migration (pnpm run db:migrate)</Step>
-        <Step note="pnpm run db:reset will recreate schema (destructive)" />
-      </DatabaseWorkflow>
+A `.env.example` file is provided with all necessary variables documented.
 
-    </Backend>
+---
 
-    <Backend name="KotlinSpringBoot">
-      <TechnologyStack>
-        <Framework>Spring Boot 3.5.5</Framework>
-        <Language>Kotlin 1.9.25</Language>
-        <BuildTool>Maven</BuildTool>
-        <JVM>Java 21</JVM>
-      </TechnologyStack>
+## Development Principles
 
-      <Commands>
-        <Category name="SetupAndBuild">
-          <Command>./mvnw clean install</Command>
-          <Command>mvnw.cmd clean install</Command>
-        </Category>
-        <Category name="Run">
-          <Command>./mvnw spring-boot:run</Command>
-          <Command>mvnw.cmd spring-boot:run</Command>
-        </Category>
-        <Category name="Testing">
-          <Command>./mvnw test</Command>
-          <Command>mvnw.cmd test</Command>
-        </Category>
-        <Category name="Packaging">
-          <Command>./mvnw package</Command>
-          <Command>mvnw.cmd package</Command>
-        </Category>
-      </Commands>
+### Extensibility
+- Add new backend feature = create new feature package with controllers, services, models, etc.
+- Add new frontend page = create new folder in `/pages` with components and composables
+- Add new SSO provider = add OpenID Connect configuration
 
-      <Architecture>
-        <MainClass>FlorentinB.template.TemplateApplication</MainClass>
-        <Package>FlorentinB.template.*</Package>
-        <Status>Template/starter only</Status>
-      </Architecture>
+### Modularity
+Each feature is isolated and can be removed or modified without impacting others. Dependencies between features should be minimal.
 
-    </Backend>
+### Maintainability
+- Code organized predictably
+- Clear separation of concerns
+- Mappers to isolate data transformations
+- Shared types/models between frontend and backend
 
-    <DevelopmentNotes>
-      <CurrentState>
-        <Note>NestJS backend is fully functional</Note>
-        <Note>Kotlin backend is minimal</Note>
-        <Note>Frontend and mobile placeholders</Note>
-      </CurrentState>
+### Developer Experience
+The template should allow to:
+1. Clone the repo
+2. Run `docker-compose up`
+3. Start developing business features immediately
 
-      <WhenAddingFeatures>
-        <Rule>Follow NestJS module structure</Rule>
-        <Rule>Use MikroORM migrations for DB changes</Rule>
-        <Rule>Protect routes with JwtAuthGuard</Rule>
-        <Rule>Validation handled by ValidationPipe</Rule>
-      </WhenAddingFeatures>
+---
 
-      <DockerDevelopment>
-        <Service name="PostgreSQL" port="5432" />
-        <Service name="pgAdmin" port="5050" url="http://localhost:5050" />
-        <Service name="Backend" port="3000" />
-        <Command>docker-compose up -d</Command>
-      </DockerDevelopment>
+## Base Features Included
 
-    </DevelopmentNotes>
-  </ClaudeConfig>
+The template includes the **Authentication & Account Management** feature by default:
+- Registration (email/password)
+- Login (email/password)
+- Refresh token
+- Password change
+- Email change
+- Account deletion
+- SSO ready (Google, Facebook via OpenID Connect)
+
+### Default Pages (Frontend)
+- Login/Registration page
+- Home page with header and navigation menu
+- User settings page (change email/password, account deletion)
+
+---
+
+## Skills Reference
+
+This section lists the available skills to work on this project. Skills are reusable prompts/workflows for common development tasks.
+
+### Available Skills
+<!-- To be completed with actual skills -->
+- TBD
+
+---
+
+## What This Template Is NOT
+
+- Not a framework, just a starting point
+- Not a complete application, but a base to extend
+- Not set in stone: adapt the structure to your specific needs
+
+---
+
+**Version**: 1.0  
+**Last Updated**: December 2024

@@ -31,13 +31,15 @@ services:
             dockerfile: Dockerfile
         restart: always
         ports:
-            - '${PORT}:3000'
+            - '${PORT}:8080'
         depends_on:
             - database
         environment:
-            DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
-        volumes:
-            - .:/app
+            SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+            SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+            SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+            SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+            SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.PostgreSQLDialect
 
 volumes:
     pgdata:

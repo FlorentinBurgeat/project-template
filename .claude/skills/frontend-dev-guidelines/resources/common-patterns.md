@@ -1,331 +1,742 @@
 # Common Patterns
 
-Frequently used patterns for forms, authentication, DataGrid, dialogs, and other common UI elements.
+Frequently used patterns for forms, authentication, modals, and state management in Vue 3 applications.
 
 ---
 
-## Authentication with useAuth
+## Authentication with Singleton Composable
 
-### Getting Current User
+### useAuthState Pattern
 
 ```typescript
-import { useAuth } from '@/hooks/useAuth';
+// composables/useAuthState.ts
+import { ref, computed, readonly } from 'vue'
+import type { Ref } from 'vue'
+import { authApi } from '@/api/auth'
 
-export const MyComponent: React.FC = () => {
-    const { user } = useAuth();
+interface User {
+  id: number
+  email: string
+  username: string
+  roles: string[]
+}
 
-    // Available properties:
-    // - user.id: string
-    // - user.email: string
-    // - user.username: string
-    // - user.roles: string[]
+// Singleton state (shared across all components)
+const user = ref<User | null>(null)
+const isLoading = ref(false)
 
-    return (
-        <div>
-            <p>Logged in as: {user.email}</p>
-            <p>Username: {user.username}</p>
-            <p>Roles: {user.roles.join(', ')}</p>
-        </div>
-    );
-};
+export function useAuthState() {
+  const isAuthenticated = computed(() => !!user.value)
+
+  async function login(credentials: { email: string; password: string }) {
+    isLoading.value = true
+    try {
+      const response = await authApi.login(credentials)
+      user.value = response.user
+    } catch (error) {
+      console.error('Login failed:', error)
+      throw error
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function logout() {
+    try {
+      await authApi.logout()
+      user.value = null
+    } catch (error) {
+      console.error('Logout failed:', error)
+    }
+  }
+
+  async function fetchCurrentUser() {
+    isLoading.value = true
+    try {
+      const response = await authApi.getCurrentUser()
+      user.value = response.user
+    } catch (error) {
+      user.value = null
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  function hasRole(role: string): boolean {
+    return user.value?.roles.includes(role) ?? false
+  }
+
+  return {
+    user: readonly(user),
+    isAuthenticated,
+    isLoading: readonly(isLoading),
+    login,
+    logout,
+    fetchCurrentUser,
+    hasRole
+  }
+}
 ```
 
-**NEVER make direct API calls for auth** - always use `useAuth` hook.
+**Usage:**
+```vue
+<script setup lang="ts">
+import { useAuthState } from '@/composables/useAuthState'
+
+const { user, isAuthenticated, hasRole, logout } = useAuthState()
+
+function handleLogout() {
+  logout()
+}
+</script>
+
+<template>
+  <div v-if="isAuthenticated">
+    <p>Logged in as: {{ user.email }}</p>
+    <p>Username: {{ user.username }}</p>
+    <p>Roles: {{ user.roles.join(', ') }}</p>
+
+    <button v-if="hasRole('admin')" class="btn">
+      Admin Panel
+    </button>
+
+    <button @click="handleLogout">Logout</button>
+  </div>
+
+  <div v-else>
+    <p>Not logged in</p>
+  </div>
+</template>
+```
+
+**NEVER make direct API calls for auth** - always use `useAuthState` composable.
 
 ---
 
-## Forms with React Hook Form
+## Form Patterns
 
-### Basic Form
+### Basic Form with Validation
+
+```vue
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import { useToast } from '@/composables/useToast'
+import { userApi } from '@/api/user'
+
+interface FormData {
+  username: string
+  email: string
+  age: number
+}
+
+const { showSuccess, showError } = useToast()
+
+const formData = ref<FormData>({
+  username: '',
+  email: '',
+  age: 18
+})
+
+const errors = ref<Partial<Record<keyof FormData, string>>>({})
+const isSubmitting = ref(false)
+
+// Validation
+function validateForm(): boolean {
+  errors.value = {}
+
+  if (formData.value.username.length < 3) {
+    errors.value.username = 'Username must be at least 3 characters'
+  }
+
+  if (!formData.value.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+    errors.value.email = 'Invalid email address'
+  }
+
+  if (formData.value.age < 18) {
+    errors.value.age = 'Must be 18 or older'
+  }
+
+  return Object.keys(errors.value).length === 0
+}
+
+async function handleSubmit() {
+  if (!validateForm()) {
+    return
+  }
+
+  isSubmitting.value = true
+
+  try {
+    await userApi.createUser(formData.value)
+    showSuccess('Form submitted successfully')
+    // Reset form
+    formData.value = { username: '', email: '', age: 18 }
+  } catch (error) {
+    showError('Failed to submit form')
+  } finally {
+    isSubmitting.value = false
+  }
+}
+</script>
+
+<template>
+  <form @submit.prevent="handleSubmit" class="space-y-4">
+    <div>
+      <label for="username" class="block text-sm font-medium mb-1">
+        Username
+      </label>
+      <input
+        id="username"
+        v-model="formData.username"
+        type="text"
+        class="w-full p-2 border rounded"
+        :class="{ 'border-red-500': errors.username }"
+      />
+      <p v-if="errors.username" class="text-red-500 text-sm mt-1">
+        {{ errors.username }}
+      </p>
+    </div>
+
+    <div>
+      <label for="email" class="block text-sm font-medium mb-1">
+        Email
+      </label>
+      <input
+        id="email"
+        v-model="formData.email"
+        type="email"
+        class="w-full p-2 border rounded"
+        :class="{ 'border-red-500': errors.email }"
+      />
+      <p v-if="errors.email" class="text-red-500 text-sm mt-1">
+        {{ errors.email }}
+      </p>
+    </div>
+
+    <div>
+      <label for="age" class="block text-sm font-medium mb-1">
+        Age
+      </label>
+      <input
+        id="age"
+        v-model.number="formData.age"
+        type="number"
+        class="w-full p-2 border rounded"
+        :class="{ 'border-red-500': errors.age }"
+      />
+      <p v-if="errors.age" class="text-red-500 text-sm mt-1">
+        {{ errors.age }}
+      </p>
+    </div>
+
+    <button
+      type="submit"
+      :disabled="isSubmitting"
+      class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+    >
+      {{ isSubmitting ? 'Submitting...' : 'Submit' }}
+    </button>
+  </form>
+</template>
+```
+
+### Form Validation Composable
 
 ```typescript
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { TextField, Button } from '@mui/material';
-import { useMuiSnackbar } from '@/hooks/useMuiSnackbar';
+// composables/useFormValidation.ts
+import { ref, type Ref } from 'vue'
 
-// Zod schema for validation
-const formSchema = z.object({
-    username: z.string().min(3, 'Username must be at least 3 characters'),
-    email: z.string().email('Invalid email address'),
-    age: z.number().min(18, 'Must be 18 or older'),
-});
+type ValidationRules<T> = {
+  [K in keyof T]?: Array<(value: T[K]) => string | null>
+}
 
-type FormData = z.infer<typeof formSchema>;
+export function useFormValidation<T extends Record<string, any>>(
+  formData: Ref<T>,
+  rules: ValidationRules<T>
+) {
+  const errors = ref<Partial<Record<keyof T, string>>>({}) as Ref<Partial<Record<keyof T, string>>>
 
-export const MyForm: React.FC = () => {
-    const { showSuccess, showError } = useMuiSnackbar();
+  function validate(): boolean {
+    errors.value = {}
 
-    const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
-        resolver: zodResolver(formSchema),
-        defaultValues: {
-            username: '',
-            email: '',
-            age: 18,
-        },
-    });
+    for (const field in rules) {
+      const fieldRules = rules[field]
+      if (!fieldRules) continue
 
-    const onSubmit = async (data: FormData) => {
-        try {
-            await api.submitForm(data);
-            showSuccess('Form submitted successfully');
-        } catch (error) {
-            showError('Failed to submit form');
+      for (const rule of fieldRules) {
+        const error = rule(formData.value[field])
+        if (error) {
+          errors.value[field] = error
+          break
         }
-    };
+      }
+    }
 
-    return (
-        <form onSubmit={handleSubmit(onSubmit)}>
-            <TextField
-                {...register('username')}
-                label='Username'
-                error={!!errors.username}
-                helperText={errors.username?.message}
-            />
+    return Object.keys(errors.value).length === 0
+  }
 
-            <TextField
-                {...register('email')}
-                label='Email'
-                error={!!errors.email}
-                helperText={errors.email?.message}
-                type='email'
-            />
+  function clearErrors() {
+    errors.value = {}
+  }
 
-            <TextField
-                {...register('age', { valueAsNumber: true })}
-                label='Age'
-                error={!!errors.age}
-                helperText={errors.age?.message}
-                type='number'
-            />
+  return {
+    errors,
+    validate,
+    clearErrors
+  }
+}
+```
 
-            <Button type='submit' variant='contained'>
-                Submit
-            </Button>
-        </form>
-    );
-};
+**Usage:**
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useFormValidation } from '@/composables/useFormValidation'
+
+const formData = ref({
+  email: '',
+  password: ''
+})
+
+const { errors, validate } = useFormValidation(formData, {
+  email: [
+    (value) => !value ? 'Email is required' : null,
+    (value) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? 'Invalid email' : null
+  ],
+  password: [
+    (value) => !value ? 'Password is required' : null,
+    (value) => value.length < 8 ? 'Password must be at least 8 characters' : null
+  ]
+})
+
+function handleSubmit() {
+  if (validate()) {
+    // Submit form
+  }
+}
+</script>
 ```
 
 ---
 
-## Dialog Component Pattern
+## Modal/Dialog Pattern
 
-### Standard Dialog Structure
+### Modal Component
 
-From BEST_PRACTICES.md - All dialogs should have:
-- Icon in title
-- Close button (X)
-- Action buttons at bottom
-
-```typescript
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton } from '@mui/material';
-import { Close, Info } from '@mui/icons-material';
-
-interface MyDialogProps {
-    open: boolean;
-    onClose: () => void;
-    onConfirm: () => void;
+```vue
+<!-- components/Modal.vue -->
+<script setup lang="ts">
+interface Props {
+  open: boolean
+  title?: string
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl'
 }
 
-export const MyDialog: React.FC<MyDialogProps> = ({ open, onClose, onConfirm }) => {
-    return (
-        <Dialog open={open} onClose={onClose} maxWidth='sm' fullWidth>
-            <DialogTitle>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Info color='primary' />
-                        Dialog Title
-                    </Box>
-                    <IconButton onClick={onClose} size='small'>
-                        <Close />
-                    </IconButton>
-                </Box>
-            </DialogTitle>
-
-            <DialogContent>
-                {/* Content here */}
-            </DialogContent>
-
-            <DialogActions>
-                <Button onClick={onClose}>Cancel</Button>
-                <Button onClick={onConfirm} variant='contained'>
-                    Confirm
-                </Button>
-            </DialogActions>
-        </Dialog>
-    );
-};
-```
-
----
-
-## DataGrid Wrapper Pattern
-
-### Wrapper Component Contract
-
-From BEST_PRACTICES.md - DataGrid wrappers should accept:
-
-**Required Props:**
-- `rows`: Data array
-- `columns`: Column definitions
-- Loading/error states
-
-**Optional Props:**
-- Toolbar components
-- Custom actions
-- Initial state
-
-```typescript
-import { DataGridPro } from '@mui/x-data-grid-pro';
-import type { GridColDef } from '@mui/x-data-grid-pro';
-
-interface DataGridWrapperProps {
-    rows: any[];
-    columns: GridColDef[];
-    loading?: boolean;
-    toolbar?: React.ReactNode;
-    onRowClick?: (row: any) => void;
+interface Emits {
+  (e: 'close'): void
+  (e: 'confirm'): void
 }
 
-export const DataGridWrapper: React.FC<DataGridWrapperProps> = ({
-    rows,
-    columns,
-    loading = false,
-    toolbar,
-    onRowClick,
-}) => {
-    return (
-        <DataGridPro
-            rows={rows}
-            columns={columns}
-            loading={loading}
-            slots={{ toolbar: toolbar ? () => toolbar : undefined }}
-            onRowClick={(params) => onRowClick?.(params.row)}
-            // Standard configuration
-            pagination
-            pageSizeOptions={[25, 50, 100]}
-            initialState={{
-                pagination: { paginationModel: { pageSize: 25 } },
-            }}
-        />
-    );
-};
+const props = withDefaults(defineProps<Props>(), {
+  maxWidth: 'md'
+})
+
+const emit = defineEmits<Emits>()
+
+const widthClasses = {
+  sm: 'max-w-sm',
+  md: 'max-w-md',
+  lg: 'max-w-lg',
+  xl: 'max-w-xl'
+}
+
+function handleClose() {
+  emit('close')
+}
+
+function handleConfirm() {
+  emit('confirm')
+}
+</script>
+
+<template>
+  <Teleport to="body">
+    <div
+      v-if="open"
+      class="fixed inset-0 z-50 flex items-center justify-center"
+    >
+      <!-- Backdrop -->
+      <div
+        class="absolute inset-0 bg-black bg-opacity-50"
+        @click="handleClose"
+      ></div>
+
+      <!-- Modal -->
+      <div
+        class="relative bg-white rounded-lg shadow-xl w-full mx-4"
+        :class="widthClasses[maxWidth]"
+      >
+        <!-- Header -->
+        <div class="flex items-center justify-between p-4 border-b">
+          <h2 class="text-xl font-semibold">{{ title }}</h2>
+          <button
+            @click="handleClose"
+            class="text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+
+        <!-- Content -->
+        <div class="p-4">
+          <slot />
+        </div>
+
+        <!-- Footer -->
+        <div class="flex justify-end gap-2 p-4 border-t">
+          <button
+            @click="handleClose"
+            class="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
+          >
+            Cancel
+          </button>
+          <button
+            @click="handleConfirm"
+            class="px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600"
+          >
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
+</template>
+```
+
+**Usage:**
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import Modal from '@/components/Modal.vue'
+
+const isModalOpen = ref(false)
+
+function openModal() {
+  isModalOpen.value = true
+}
+
+function closeModal() {
+  isModalOpen.value = false
+}
+
+function handleConfirm() {
+  console.log('Confirmed')
+  closeModal()
+}
+</script>
+
+<template>
+  <div>
+    <button @click="openModal">Open Modal</button>
+
+    <Modal
+      :open="isModalOpen"
+      title="Confirm Action"
+      @close="closeModal"
+      @confirm="handleConfirm"
+    >
+      <p>Are you sure you want to perform this action?</p>
+    </Modal>
+  </div>
+</template>
 ```
 
 ---
 
-## Mutation Patterns
+## Mutation Patterns with TanStack Query
 
 ### Update with Cache Invalidation
 
-```typescript
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useMuiSnackbar } from '@/hooks/useMuiSnackbar';
+```vue
+<script setup lang="ts">
+import { useMutation, useQueryClient } from '@tanstack/vue-query'
+import { useToast } from '@/composables/useToast'
+import { userApi } from '@/api/user'
+import type { User } from '@/model/User'
 
-export const useUpdateEntity = () => {
-    const queryClient = useQueryClient();
-    const { showSuccess, showError } = useMuiSnackbar();
+const queryClient = useQueryClient()
+const { showSuccess, showError } = useToast()
 
-    return useMutation({
-        mutationFn: ({ id, data }: { id: number; data: any }) =>
-            api.updateEntity(id, data),
+const updateUserMutation = useMutation({
+  mutationFn: ({ id, data }: { id: number; data: Partial<User> }) =>
+    userApi.updateUser(id, data),
 
-        onSuccess: (result, variables) => {
-            // Invalidate affected queries
-            queryClient.invalidateQueries({ queryKey: ['entity', variables.id] });
-            queryClient.invalidateQueries({ queryKey: ['entities'] });
+  onSuccess: (result, variables) => {
+    // Invalidate affected queries
+    queryClient.invalidateQueries({ queryKey: ['user', variables.id] })
+    queryClient.invalidateQueries({ queryKey: ['users'] })
 
-            showSuccess('Entity updated');
-        },
+    showSuccess('User updated successfully')
+  },
 
-        onError: () => {
-            showError('Failed to update entity');
-        },
-    });
-};
+  onError: (error) => {
+    showError('Failed to update user')
+    console.error('Update error:', error)
+  }
+})
 
-// Usage
-const updateEntity = useUpdateEntity();
+function handleSave(userId: number, updates: Partial<User>) {
+  updateUserMutation.mutate({ id: userId, data: updates })
+}
+</script>
 
-const handleSave = () => {
-    updateEntity.mutate({ id: 123, data: { name: 'New Name' } });
-};
+<template>
+  <button
+    @click="handleSave(123, { name: 'New Name' })"
+    :disabled="updateUserMutation.isPending.value"
+  >
+    {{ updateUserMutation.isPending.value ? 'Saving...' : 'Save' }}
+  </button>
+</template>
+```
+
+### Delete with Optimistic Update
+
+```vue
+<script setup lang="ts">
+import { useMutation, useQueryClient } from '@tanstack/vue-query'
+import { useToast } from '@/composables/useToast'
+import { userApi } from '@/api/user'
+import type { User } from '@/model/User'
+
+const queryClient = useQueryClient()
+const { showSuccess, showError } = useToast()
+
+const deleteUserMutation = useMutation({
+  mutationFn: (userId: number) => userApi.deleteUser(userId),
+
+  onMutate: async (userId) => {
+    // Cancel outgoing queries
+    await queryClient.cancelQueries({ queryKey: ['users'] })
+
+    // Snapshot previous value
+    const previousUsers = queryClient.getQueryData<User[]>(['users'])
+
+    // Optimistically update
+    if (previousUsers) {
+      queryClient.setQueryData<User[]>(
+        ['users'],
+        previousUsers.filter(user => user.id !== userId)
+      )
+    }
+
+    return { previousUsers }
+  },
+
+  onError: (error, userId, context) => {
+    // Rollback on error
+    if (context?.previousUsers) {
+      queryClient.setQueryData(['users'], context.previousUsers)
+    }
+    showError('Failed to delete user')
+  },
+
+  onSuccess: () => {
+    showSuccess('User deleted successfully')
+  },
+
+  onSettled: () => {
+    // Always refetch to ensure consistency
+    queryClient.invalidateQueries({ queryKey: ['users'] })
+  }
+})
+
+function handleDelete(userId: number) {
+  if (confirm('Are you sure you want to delete this user?')) {
+    deleteUserMutation.mutate(userId)
+  }
+}
+</script>
 ```
 
 ---
 
 ## State Management Patterns
 
-### TanStack Query for Server State (PRIMARY)
-
-Use TanStack Query for **all server data**:
-- Fetching: useSuspenseQuery
-- Mutations: useMutation
-- Caching: Automatic
-- Synchronization: Built-in
+### Singleton Composable for Global State
 
 ```typescript
-// ✅ CORRECT - TanStack Query for server data
-const { data: users } = useSuspenseQuery({
-    queryKey: ['users'],
-    queryFn: () => userApi.getUsers(),
-});
+// composables/useAppState.ts
+import { ref, computed, readonly } from 'vue'
+
+// Singleton state (shared across all components)
+const sidebarOpen = ref(true)
+const theme = ref<'light' | 'dark'>('light')
+
+export function useAppState() {
+  const isDarkMode = computed(() => theme.value === 'dark')
+
+  function toggleSidebar() {
+    sidebarOpen.value = !sidebarOpen.value
+  }
+
+  function toggleTheme() {
+    theme.value = theme.value === 'light' ? 'dark' : 'light'
+  }
+
+  function setTheme(newTheme: 'light' | 'dark') {
+    theme.value = newTheme
+  }
+
+  return {
+    sidebarOpen: readonly(sidebarOpen),
+    theme: readonly(theme),
+    isDarkMode,
+    toggleSidebar,
+    toggleTheme,
+    setTheme
+  }
+}
 ```
 
-### useState for UI State
+**Usage:**
+```vue
+<script setup lang="ts">
+import { useAppState } from '@/composables/useAppState'
 
-Use `useState` for **local UI state only**:
-- Form inputs (uncontrolled)
+const { sidebarOpen, theme, isDarkMode, toggleSidebar, toggleTheme } = useAppState()
+</script>
+
+<template>
+  <div :class="{ 'dark-mode': isDarkMode }">
+    <button @click="toggleSidebar">
+      {{ sidebarOpen ? 'Close' : 'Open' }} Sidebar
+    </button>
+
+    <button @click="toggleTheme">
+      Switch to {{ isDarkMode ? 'Light' : 'Dark' }} Mode
+    </button>
+  </div>
+</template>
+```
+
+### Local Component State
+
+Use `ref` for **local UI state only**:
+- Form inputs
 - Modal open/closed
 - Selected tab
 - Temporary UI flags
 
-```typescript
-// ✅ CORRECT - useState for UI state
-const [modalOpen, setModalOpen] = useState(false);
-const [selectedTab, setSelectedTab] = useState(0);
-```
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
 
-### Zustand for Global Client State (Minimal)
+// Local UI state
+const selectedTab = ref(0)
+const isModalOpen = ref(false)
+const searchQuery = ref('')
 
-Use Zustand only for **global client state**:
-- Theme preference
-- Sidebar collapsed state
-- User preferences (not from server)
-
-```typescript
-import { create } from 'zustand';
-
-interface AppState {
-    sidebarOpen: boolean;
-    toggleSidebar: () => void;
+function selectTab(index: number) {
+  selectedTab.value = index
 }
 
-export const useAppState = create<AppState>((set) => ({
-    sidebarOpen: true,
-    toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
-}));
+function openModal() {
+  isModalOpen.value = true
+}
+</script>
+
+<template>
+  <div>
+    <div class="tabs">
+      <button
+        v-for="(tab, index) in ['Tab 1', 'Tab 2', 'Tab 3']"
+        :key="index"
+        @click="selectTab(index)"
+        :class="{ 'active': selectedTab === index }"
+      >
+        {{ tab }}
+      </button>
+    </div>
+
+    <input v-model="searchQuery" placeholder="Search..." />
+
+    <button @click="openModal">Open Modal</button>
+  </div>
+</template>
 ```
 
-**Avoid prop drilling** - use context or Zustand instead.
+---
+
+## Debounced Search Pattern
+
+```vue
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import { useDebounce } from '@vueuse/core'
+import { useQuery } from '@tanstack/vue-query'
+import { searchApi } from '@/api/search'
+
+const searchTerm = ref('')
+const debouncedSearchTerm = useDebounce(searchTerm, 300)
+
+const { data: results, isLoading } = useQuery({
+  queryKey: ['search', debouncedSearchTerm],
+  queryFn: () => searchApi.search(debouncedSearchTerm.value),
+  enabled: computed(() => debouncedSearchTerm.value.length > 2)
+})
+</script>
+
+<template>
+  <div>
+    <input
+      v-model="searchTerm"
+      placeholder="Type to search..."
+      class="w-full p-2 border rounded"
+    />
+
+    <div v-if="isLoading" class="mt-4">
+      Searching...
+    </div>
+
+    <div v-else-if="results" class="mt-4 space-y-2">
+      <div
+        v-for="result in results"
+        :key="result.id"
+        class="p-2 border rounded"
+      >
+        {{ result.title }}
+      </div>
+    </div>
+
+    <div v-else-if="searchTerm.length > 0 && searchTerm.length <= 2" class="mt-4 text-gray-500">
+      Type at least 3 characters to search
+    </div>
+  </div>
+</template>
+```
 
 ---
 
 ## Summary
 
 **Common Patterns:**
-- ✅ useAuth hook for current user (id, email, roles, username)
-- ✅ React Hook Form + Zod for forms
-- ✅ Dialog with icon + close button
-- ✅ DataGrid wrapper contracts
-- ✅ Mutations with cache invalidation
-- ✅ TanStack Query for server state
-- ✅ useState for UI state
-- ✅ Zustand for global client state (minimal)
+- ✅ **Singleton Composable** for global state (auth, app settings)
+- ✅ **ref/reactive** for local UI state
+- ✅ **Form validation** with composable pattern
+- ✅ **Modal/Dialog** with Teleport and props
+- ✅ **TanStack Query** mutations with cache invalidation
+- ✅ **Optimistic updates** for better UX
+- ✅ **Debounced search** with VueUse
+- ✅ **Toast notifications** for user feedback
+
+**State Management Guidelines:**
+- **TanStack Query**: Server state (API data)
+- **Singleton Composables**: Global client state (auth, theme)
+- **ref/reactive**: Local component state (UI flags)
 
 **See Also:**
 - [data-fetching.md](data-fetching.md) - TanStack Query patterns
 - [component-patterns.md](component-patterns.md) - Component structure
 - [loading-and-error-states.md](loading-and-error-states.md) - Error handling
+- [complete-examples.md](complete-examples.md) - Full examples

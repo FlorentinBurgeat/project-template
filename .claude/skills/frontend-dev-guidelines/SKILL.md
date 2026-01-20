@@ -7,7 +7,7 @@ description: Vue 3 frontend development guidelines with TypeScript, Composition 
 
 ## Purpose
 
-Comprehensive guide for modern Vue 3 development, emphasizing Composition API, singleton composable stores, data fetching with TanStack Query, Tailwind CSS styling, and proper file organization.
+Comprehensive guide for modern Vue 3 development, emphasizing Composition API, singleton composable stores, data fetching with TanStack Query, Tailwind CSS styling, and proper component design.
 
 ## When to Use This Skill
 
@@ -30,31 +30,28 @@ Comprehensive guide for modern Vue 3 development, emphasizing Composition API, s
 Creating a Vue 3 component? Follow this checklist:
 
 - [ ] Use `<script setup lang="ts">` syntax
-- [ ] Define props with `withDefaults(defineProps<T>())`
-- [ ] Define emits with `defineEmits<{ event: [args] }>()`
+- [ ] Define props with `withDefaults(defineProps<Props>(), { defaults })`
+- [ ] Define emits with `defineEmits<{ eventName: [args] }>()`
 - [ ] Use composables for shared logic and state
-- [ ] Style with Tailwind CSS utility classes
-- [ ] Import ShadCN components from `@/components/ui`
-- [ ] Use computed for derived state
+- [ ] Style with Tailwind CSS utility classes in `<template>`
+- [ ] Import ShadCN Vue components from `@/components/ui`
+- [ ] Use `computed()` for derived state
 - [ ] Keep component logic minimal
-- [ ] Add TypeScript types for all props
-- [ ] Lazy load with `defineAsyncComponent` if needed
+- [ ] Add TypeScript interfaces for all props
+- [ ] Lazy load with `defineAsyncComponent()` for heavy components
 
-### New Feature Checklist
+### New Page Checklist
 
-Creating a new feature? Set up this structure:
+Creating a new page? Follow this pattern:
 
-- [ ] Create feature directory: `src/features/{feature-name}/`
-- [ ] Create `composables/use{Feature}Store.ts` for state
-- [ ] Create `components/` directory for UI components
-- [ ] Create `pages/` directory for page component
-- [ ] Create `api/{feature}Api.ts` for API calls
-- [ ] Add types in `types/{feature}.ts`
-- [ ] Set up routes in `router/`
-- [ ] Add tests for composables and components
-- [ ] Lazy load feature components
-- [ ] Use Suspense boundaries
-- [ ] Export public API from feature `index.ts`
+- [ ] Create `.vue` page component with `<script setup lang="ts">`
+- [ ] Create page-specific composables for local state if needed
+- [ ] Create page-specific components in dedicated folder
+- [ ] Create API service file if new feature
+- [ ] Add types and DTOs for data models
+- [ ] Set up route in Vue Router with lazy loading
+- [ ] Add navigation guards if authentication required
+- [ ] Handle loading states with conditional rendering
 
 ---
 
@@ -63,11 +60,8 @@ Creating a new feature? Set up this structure:
 | Alias | Resolves To | Example |
 |-------|-------------|---------|
 | `@/` | `src/` | `import { userApi } from '@/api/user'` |
-| `~types` | `src/types` | `import type { User } from '~types/user'` |
-| `~components` | `src/components` | `import { ShadButton } from '~components/ui'` |
-| `~composables` | `src/composables` | `import { useUserStore } from '~composables/useUserStore'` |
 
-Defined in: [vite.config.ts](../../vite.config.ts)
+*Note: Additional aliases may be configured in `vite.config.ts`*
 
 ---
 
@@ -75,25 +69,27 @@ Defined in: [vite.config.ts](../../vite.config.ts)
 
 ```typescript
 // Vue 3 Composition API
-import { ref, computed, watch, onMounted, defineProps, defineEmits } from 'vue'
-import type { PropType, DefineComponent } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import type { Ref, ComputedRef } from 'vue'
 
 // Vue Router
-import { useRouter, useRoute, RouterLink } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
+import type { RouteLocationNormalized } from 'vue-router'
 
 // TanStack Query (Vue 3)
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 
 // ShadCN Vue Components
-import { ShadButton, ShadCard, ShadInput } from '@/components/ui'
+import { Button } from '@/components/ui/button'
+import { Card, CardHeader, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 
-// Local Composables (stores)
-import { useUserStore } from '@/composables/useUserStore'
-import { useForm } from '@/composables/useForm'
+// Local Composables
+import { useAuthState } from '@/composables/useAuthState'
 
 // API & Types
 import { userApi } from '@/api/user'
-import type { User, ApiResponse } from '~types'
+import type { User, UserDTO } from '@/model/User'
 ```
 
 ---
@@ -102,17 +98,18 @@ import type { User, ApiResponse } from '~types'
 
 ### 🎨 Component Patterns
 
-**Modern React components use:**
-- `React.FC<Props>` for type safety
-- `React.lazy()` for code splitting
-- `SuspenseLoader` for loading states
-- Named const + default export pattern
+**Modern Vue 3 components use:**
+- `<script setup lang="ts">` for Composition API
+- `withDefaults(defineProps<Props>(), {})` for typed props with defaults
+- `defineEmits<Events>()` for type-safe events
+- `defineAsyncComponent()` for code splitting
+- Single File Components (`.vue`)
 
 **Key Concepts:**
 - Lazy load heavy components (DataGrid, charts, editors)
-- Always wrap lazy components in Suspense
-- Use SuspenseLoader component (with fade animation)
-- Component structure: Props → Hooks → Handlers → Render → Export
+- Use conditional rendering (`v-if`, `v-show`) for loading states
+- Component structure: `<script setup>` → `<template>` → `<style scoped>`
+- Extract logic into composables for reusability
 
 **[📖 Complete Guide: resources/component-patterns.md](resources/component-patterns.md)**
 
@@ -120,17 +117,18 @@ import type { User, ApiResponse } from '~types'
 
 ### 📊 Data Fetching
 
-**PRIMARY PATTERN: useSuspenseQuery**
-- Use with Suspense boundaries
-- Cache-first strategy (check grid cache before API)
-- Replaces `isLoading` checks
+**PRIMARY PATTERN: useQuery**
+- Cache-first strategy
+- Automatic refetching and caching
 - Type-safe with generics
+- Returns reactive refs in Vue
+- Handle loading with `isLoading` ref
 
 **API Service Layer:**
-- Create `features/{feature}/api/{feature}Api.ts`
-- Use `apiClient` axios instance
+- Create `api/{feature}Api.ts` files
+- Use `axios` or `fetch`
 - Centralized methods per feature
-- Route format: `/form/route` (NOT `/api/form/route`)
+- Export typed functions
 
 **[📖 Complete Guide: resources/data-fetching.md](resources/data-fetching.md)**
 
@@ -138,20 +136,15 @@ import type { User, ApiResponse } from '~types'
 
 ### 📁 File Organization
 
-**features/ vs components/:**
-- `features/`: Domain-specific (posts, comments, auth)
-- `components/`: Truly reusable (SuspenseLoader, CustomAppBar)
+**Component Organization:**
+- Keep page-specific components together
+- Reusable components in shared location
+- Co-locate composables with their usage when possible
 
-**Feature Subdirectories:**
-```
-features/
-  my-feature/
-    api/          # API service layer
-    components/   # Feature components
-    hooks/        # Custom hooks
-    helpers/      # Utility functions
-    types/        # TypeScript types
-```
+**API Layer:**
+- One API file per feature/domain
+- Export typed functions
+- Handle errors consistently
 
 **[📖 Complete Guide: resources/file-organization.md](resources/file-organization.md)**
 
@@ -159,19 +152,22 @@ features/
 
 ### 🎨 Styling
 
-**Inline vs Separate:**
-- <100 lines: Inline `const styles: Record<string, SxProps<Theme>>`
-- >100 lines: Separate `.styles.ts` file
+**Tailwind CSS + ShadCN Vue:**
+- Use Tailwind utility classes directly in `<template>`
+- ShadCN Vue provides pre-built accessible components
+- Use `<style scoped>` for component-specific styles
+- No CSS-in-JS needed
 
-**Primary Method:**
-- Use `sx` prop for MUI components
-- Type-safe with `SxProps<Theme>`
-- Theme access: `(theme) => theme.palette.primary.main`
-
-**MUI v7 Grid:**
-```typescript
-<Grid size={{ xs: 12, md: 6 }}>  // ✅ v7 syntax
-<Grid xs={12} md={6}>             // ❌ Old syntax
+**Example:**
+```vue
+<template>
+  <div class="p-4 flex flex-col gap-4">
+    <Card class="p-6">
+      <h2 class="text-2xl font-bold mb-4">Title</h2>
+      <Button variant="default">Action</Button>
+    </Card>
+  </div>
+</template>
 ```
 
 **[📖 Complete Guide: resources/styling-guide.md](resources/styling-guide.md)**
@@ -180,23 +176,22 @@ features/
 
 ### 🛣️ Routing
 
-**TanStack Router - Folder-Based:**
-- Directory: `routes/my-route/index.tsx`
-- Lazy load components
-- Use `createFileRoute`
-- Breadcrumb data in loader
+**Vue Router Patterns:**
+- Define routes in router configuration
+- Lazy load page components with dynamic imports
+- Use route meta fields for authentication
+- Access with `useRouter()` and `useRoute()` composables
 
 **Example:**
 ```typescript
-import { createFileRoute } from '@tanstack/react-router';
-import { lazy } from 'react';
-
-const MyPage = lazy(() => import('@/features/my-feature/components/MyPage'));
-
-export const Route = createFileRoute('/my-route/')({
-    component: MyPage,
-    loader: () => ({ crumb: 'My Route' }),
-});
+const routes = [
+  {
+    path: '/profile',
+    name: 'profile',
+    component: () => import('@/pages/ProfilePage.vue'),
+    meta: { requiresAuth: true }
+  }
+]
 ```
 
 **[📖 Complete Guide: resources/routing-guide.md](resources/routing-guide.md)**
@@ -205,26 +200,30 @@ export const Route = createFileRoute('/my-route/')({
 
 ### ⏳ Loading & Error States
 
-**CRITICAL RULE: No Early Returns**
+**Loading State Pattern:**
 
-```typescript
-// ❌ NEVER - Causes layout shift
-if (isLoading) {
-    return <LoadingSpinner />;
-}
+```vue
+<template>
+  <div v-if="isLoading" class="flex justify-center p-8">
+    <LoadingSpinner />
+  </div>
 
-// ✅ ALWAYS - Consistent layout
-<SuspenseLoader>
-    <Content />
-</SuspenseLoader>
+  <div v-else-if="error" class="text-red-500">
+    Error: {{ error.message }}
+  </div>
+
+  <div v-else>
+    <!-- Content with data -->
+    {{ data }}
+  </div>
+</template>
 ```
 
-**Why:** Prevents Cumulative Layout Shift (CLS), better UX
-
 **Error Handling:**
-- Use `useMuiSnackbar` for user feedback
-- NEVER `react-toastify`
-- TanStack Query `onError` callbacks
+- Use TanStack Query's `isError` and `error` refs
+- Show user-friendly error messages
+- Use toast notifications for feedback
+- Handle errors at appropriate level (component vs global)
 
 **[📖 Complete Guide: resources/loading-and-error-states.md](resources/loading-and-error-states.md)**
 
@@ -233,11 +232,11 @@ if (isLoading) {
 ### ⚡ Performance
 
 **Optimization Patterns:**
-- `useMemo`: Expensive computations (filter, sort, map)
-- `useCallback`: Event handlers passed to children
-- `React.memo`: Expensive components
-- Debounced search (300-500ms)
-- Memory leak prevention (cleanup in useEffect)
+- `computed()`: Cached derived state with automatic dependency tracking
+- `watch()` / `watchEffect()`: React to state changes
+- Lazy load heavy components with `defineAsyncComponent()`
+- Debounce user input (300-500ms) for search/filters
+- Use `v-show` vs `v-if` appropriately (frequently toggled vs rarely shown)
 
 **[📖 Complete Guide: resources/performance.md](resources/performance.md)**
 
@@ -246,10 +245,11 @@ if (isLoading) {
 ### 📘 TypeScript
 
 **Standards:**
-- Strict mode, no `any` type
+- Strict mode enabled, avoid `any` type
 - Explicit return types on functions
-- Type imports: `import type { User } from '~types/user'`
-- Component prop interfaces with JSDoc
+- Use `type` keyword for imports: `import type { User } from '@/model/User'`
+- Define interfaces for props, emits, and composables
+- Use generics for reusable composables
 
 **[📖 Complete Guide: resources/typescript-standards.md](resources/typescript-standards.md)**
 
@@ -258,11 +258,11 @@ if (isLoading) {
 ### 🔧 Common Patterns
 
 **Covered Topics:**
-- React Hook Form with Zod validation
-- DataGrid wrapper contracts
-- Dialog component standards
-- `useAuth` hook for current user
+- Form handling with validation
+- Singleton composable stores for global state
+- Authentication patterns with composables
 - Mutation patterns with cache invalidation
+- Modal/Dialog management
 
 **[📖 Complete Guide: resources/common-patterns.md](resources/common-patterns.md)**
 
@@ -271,12 +271,12 @@ if (isLoading) {
 ### 📚 Complete Examples
 
 **Full working examples:**
-- Modern component with all patterns
-- Complete feature structure
-- API service layer
+- Modern Vue 3 component with all patterns
+- Complete page with data fetching
+- API service layer implementation
 - Route with lazy loading
-- Suspense + useSuspenseQuery
 - Form with validation
+- Singleton composable store
 
 **[📖 Complete Guide: resources/complete-examples.md](resources/complete-examples.md)**
 
@@ -294,96 +294,96 @@ if (isLoading) {
 | Handle loading/errors | [loading-and-error-states.md](resources/loading-and-error-states.md) |
 | Optimize performance | [performance.md](resources/performance.md) |
 | TypeScript types | [typescript-standards.md](resources/typescript-standards.md) |
-| Forms/Auth/DataGrid | [common-patterns.md](resources/common-patterns.md) |
+| Forms/Auth/Patterns | [common-patterns.md](resources/common-patterns.md) |
 | See full examples | [complete-examples.md](resources/complete-examples.md) |
 
 ---
 
 ## Core Principles
 
-1. **Lazy Load Everything Heavy**: Routes, DataGrid, charts, editors
-2. **Suspense for Loading**: Use SuspenseLoader, not early returns
-3. **useSuspenseQuery**: Primary data fetching pattern for new code
-4. **Features are Organized**: api/, components/, hooks/, helpers/ subdirs
-5. **Styles Based on Size**: <100 inline, >100 separate
-6. **Import Aliases**: Use @/, ~types, ~components, ~features
-7. **No Early Returns**: Prevents layout shift
-8. **useMuiSnackbar**: For all user notifications
+1. **Single File Components**: All components are `.vue` files with `<script setup lang="ts">`
+2. **Composition API**: Use composables for shared logic and state
+3. **TanStack Query**: Primary pattern for data fetching and caching
+4. **Singleton Composables**: For global state (auth, user, config)
+5. **Tailwind for Styling**: Utility-first CSS, no CSS-in-JS
+6. **Lazy Loading**: Dynamic imports for heavy components and routes
+7. **Type Safety**: TypeScript strict mode, explicit types
+8. **Conditional Rendering**: Use `v-if`/`v-else` for loading and error states
 
 ---
 
-## Quick Reference: File Structure
+## Modern Vue 3 Component Template (Quick Copy)
 
-```
-src/
-  features/
-    my-feature/
-      api/
-        myFeatureApi.ts       # API service
-      components/
-        MyFeature.tsx         # Main component
-        SubComponent.tsx      # Related components
-      hooks/
-        useMyFeature.ts       # Custom hooks
-        useSuspenseMyFeature.ts  # Suspense hooks
-      helpers/
-        myFeatureHelpers.ts   # Utilities
-      types/
-        index.ts              # TypeScript types
-      index.ts                # Public exports
+```vue
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
+import { featureApi } from '@/api/feature'
+import type { FeatureData } from '@/model/Feature'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 
-  components/
-    SuspenseLoader/
-      SuspenseLoader.tsx      # Reusable loader
-    CustomAppBar/
-      CustomAppBar.tsx        # Reusable app bar
-
-  routes/
-    my-route/
-      index.tsx               # Route component
-      create/
-        index.tsx             # Nested route
-```
-
----
-
-## Modern Component Template (Quick Copy)
-
-```typescript
-import React, { useState, useCallback } from 'react';
-import { Box, Paper } from '@mui/material';
-import { useSuspenseQuery } from '@tanstack/react-query';
-import { featureApi } from '../api/featureApi';
-import type { FeatureData } from '~types/feature';
-
-interface MyComponentProps {
-    id: number;
-    onAction?: () => void;
+interface Props {
+  id: number
+  mode?: 'view' | 'edit'
 }
 
-export const MyComponent: React.FC<MyComponentProps> = ({ id, onAction }) => {
-    const [state, setState] = useState<string>('');
+interface Emits {
+  action: []
+  update: [value: string]
+}
 
-    const { data } = useSuspenseQuery({
-        queryKey: ['feature', id],
-        queryFn: () => featureApi.getFeature(id),
-    });
+const props = withDefaults(defineProps<Props>(), {
+  mode: 'view'
+})
 
-    const handleAction = useCallback(() => {
-        setState('updated');
-        onAction?.();
-    }, [onAction]);
+const emit = defineEmits<Emits>()
 
-    return (
-        <Box sx={{ p: 2 }}>
-            <Paper sx={{ p: 3 }}>
-                {/* Content */}
-            </Paper>
-        </Box>
-    );
-};
+// Local state
+const localState = ref<string>('')
 
-export default MyComponent;
+// Data fetching
+const { data, isLoading, error } = useQuery({
+  queryKey: ['feature', () => props.id],
+  queryFn: () => featureApi.getFeature(props.id)
+})
+
+// Computed values
+const displayValue = computed(() => {
+  return data.value ? data.value.name.toUpperCase() : ''
+})
+
+// Event handlers
+const handleAction = () => {
+  localState.value = 'updated'
+  emit('action')
+}
+</script>
+
+<template>
+  <div class="p-4">
+    <div v-if="isLoading" class="flex justify-center p-8">
+      <span>Loading...</span>
+    </div>
+
+    <div v-else-if="error" class="text-red-500">
+      Error loading data
+    </div>
+
+    <Card v-else class="p-6">
+      <CardContent>
+        <h2 class="text-xl font-bold mb-4">{{ displayValue }}</h2>
+        <Button @click="handleAction">
+          Action
+        </Button>
+      </CardContent>
+    </Card>
+  </div>
+</template>
+
+<style scoped>
+/* Optional scoped styles if needed */
+</style>
 ```
 
 For complete examples, see [resources/complete-examples.md](resources/complete-examples.md)
@@ -392,9 +392,9 @@ For complete examples, see [resources/complete-examples.md](resources/complete-e
 
 ## Related Skills
 
-- **error-tracking**: Error tracking with Sentry (applies to frontend too)
-- **backend-dev-guidelines**: Backend API patterns that frontend consumes
+- **backend-dev-guidelines**: Backend API patterns (Kotlin/Spring Boot)
+- **route-tester**: Testing API routes
 
 ---
 
-**Skill Status**: Modular structure with progressive loading for optimal context management
+**Skill Status**: Vue 3 focused with progressive resource loading

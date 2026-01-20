@@ -1,159 +1,125 @@
 # Performance Optimization
 
-Patterns for optimizing React component performance, preventing unnecessary re-renders, and avoiding memory leaks.
+Patterns for optimizing Vue 3 component performance, preventing unnecessary computations, and avoiding memory leaks.
 
 ---
 
-## Memoization Patterns
+## computed() for Derived State
 
-### useMemo for Expensive Computations
+### Why computed() is Essential
 
-```typescript
-import { useMemo } from 'react';
+Vue 3's `computed()` is **cached** and only recalculates when its dependencies change.
 
-export const DataDisplay: React.FC<{ items: Item[], searchTerm: string }> = ({
-    items,
-    searchTerm,
-}) => {
-    // ❌ AVOID - Runs on every render
-    const filteredItems = items
-        .filter(item => item.name.includes(searchTerm))
-        .sort((a, b) => a.name.localeCompare(b.name));
+```vue
+<script setup lang="ts">
+import { ref, computed } from 'vue'
 
-    // ✅ CORRECT - Memoized, only recalculates when dependencies change
-    const filteredItems = useMemo(() => {
-        return items
-            .filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()))
-            .sort((a, b) => a.name.localeCompare(b.name));
-    }, [items, searchTerm]);
-
-    return <List items={filteredItems} />;
-};
-```
-
-**When to use useMemo:**
-- Filtering/sorting large arrays
-- Complex calculations
-- Transforming data structures
-- Expensive computations (loops, recursion)
-
-**When NOT to use useMemo:**
-- Simple string concatenation
-- Basic arithmetic
-- Premature optimization (profile first!)
-
----
-
-## useCallback for Event Handlers
-
-### The Problem
-
-```typescript
-// ❌ AVOID - Creates new function on every render
-export const Parent: React.FC = () => {
-    const handleClick = (id: string) => {
-        console.log('Clicked:', id);
-    };
-
-    // Child re-renders every time Parent renders
-    // because handleClick is a new function reference each time
-    return <Child onClick={handleClick} />;
-};
-```
-
-### The Solution
-
-```typescript
-import { useCallback } from 'react';
-
-export const Parent: React.FC = () => {
-    // ✅ CORRECT - Stable function reference
-    const handleClick = useCallback((id: string) => {
-        console.log('Clicked:', id);
-    }, []); // Empty deps = function never changes
-
-    // Child only re-renders when props actually change
-    return <Child onClick={handleClick} />;
-};
-```
-
-**When to use useCallback:**
-- Functions passed as props to children
-- Functions used as dependencies in useEffect
-- Functions passed to memoized components
-- Event handlers in lists
-
-**When NOT to use useCallback:**
-- Event handlers not passed to children
-- Simple inline handlers: `onClick={() => doSomething()}`
-
----
-
-## React.memo for Component Memoization
-
-### Basic Usage
-
-```typescript
-import React from 'react';
-
-interface ExpensiveComponentProps {
-    data: ComplexData;
-    onAction: () => void;
+interface Item {
+  id: number
+  name: string
+  active: boolean
 }
 
-// ✅ Wrap expensive components in React.memo
-export const ExpensiveComponent = React.memo<ExpensiveComponentProps>(
-    function ExpensiveComponent({ data, onAction }) {
-        // Complex rendering logic
-        return <ComplexVisualization data={data} />;
-    }
-);
+interface Props {
+  items: Item[]
+}
+
+const props = defineProps<Props>()
+
+const searchTerm = ref('')
+
+// ❌ AVOID - Recalculates on every access
+function getFilteredItems() {
+  return props.items
+    .filter(item => item.name.includes(searchTerm.value))
+    .sort((a, b) => a.name.localeCompare(b.name))
+}
+
+// ✅ CORRECT - Cached, only recalculates when dependencies change
+const filteredItems = computed(() => {
+  return props.items
+    .filter(item => item.name.toLowerCase().includes(searchTerm.value.toLowerCase()))
+    .sort((a, b) => a.name.localeCompare(b.name))
+})
+
+// Access with .value in script
+console.log(filteredItems.value)
+</script>
+
+<template>
+  <div>
+    <input v-model="searchTerm" placeholder="Search..." />
+
+    <!-- No .value needed in template -->
+    <div v-for="item in filteredItems" :key="item.id">
+      {{ item.name }}
+    </div>
+  </div>
+</template>
 ```
 
-**When to use React.memo:**
-- Component renders frequently
-- Component has expensive rendering
-- Props don't change often
-- Component is a list item
-- DataGrid cells/renderers
+**When to use computed():**
+- Filtering/sorting arrays
+- Complex calculations
+- Transforming data structures
+- Any derived state based on reactive data
+- Formatting values
 
-**When NOT to use React.memo:**
-- Props change frequently anyway
-- Rendering is already fast
-- Premature optimization
+**When NOT to use computed():**
+- Side effects (use watch() instead)
+- Async operations (use composables with useQuery)
+- Simple property access
 
 ---
 
-## Debounced Search
+## Debounced Input
 
-### Using use-debounce Hook
+### Using VueUse
 
-```typescript
-import { useState } from 'react';
-import { useDebounce } from 'use-debounce';
-import { useSuspenseQuery } from '@tanstack/react-query';
+```vue
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import { useDebounceFn, useDebounce } from '@vueuse/core'
+import { useQuery } from '@tanstack/vue-query'
+import { searchApi } from '@/api/search'
 
-export const SearchComponent: React.FC = () => {
-    const [searchTerm, setSearchTerm] = useState('');
+// Method 1: Debounce the value
+const searchTerm = ref('')
+const debouncedSearchTerm = useDebounce(searchTerm, 300)
 
-    // Debounce for 300ms
-    const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
+const { data, isLoading } = useQuery({
+  queryKey: ['search', debouncedSearchTerm],
+  queryFn: () => searchApi.search(debouncedSearchTerm.value),
+  enabled: computed(() => debouncedSearchTerm.value.length > 0)
+})
 
-    // Query uses debounced value
-    const { data } = useSuspenseQuery({
-        queryKey: ['search', debouncedSearchTerm],
-        queryFn: () => api.search(debouncedSearchTerm),
-        enabled: debouncedSearchTerm.length > 0,
-    });
+// Method 2: Debounce the function
+const searchQuery = ref('')
 
-    return (
-        <input
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder='Search...'
-        />
-    );
-};
+const performSearch = useDebounceFn((value: string) => {
+  console.log('Searching for:', value)
+  // Perform search
+}, 300)
+
+function handleInput(event: Event) {
+  const target = event.target as HTMLInputElement
+  searchQuery.value = target.value
+  performSearch(target.value)
+}
+</script>
+
+<template>
+  <div>
+    <!-- Method 1: Debounced value -->
+    <input v-model="searchTerm" placeholder="Search..." />
+
+    <!-- Method 2: Debounced function -->
+    <input :value="searchQuery" @input="handleInput" placeholder="Search..." />
+
+    <div v-if="isLoading">Searching...</div>
+    <SearchResults v-else :results="data" />
+  </div>
+</template>
 ```
 
 **Optimal Debounce Timing:**
@@ -161,246 +127,727 @@ export const SearchComponent: React.FC = () => {
 - **1000ms**: Auto-save
 - **100-200ms**: Real-time validation
 
+### Manual Debounce Implementation
+
+```typescript
+// composables/useDebounce.ts
+import { ref, watch, type Ref } from 'vue'
+
+export function useDebounce<T>(value: Ref<T>, delay: number): Ref<T> {
+  const debouncedValue = ref(value.value) as Ref<T>
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
+
+  watch(value, (newValue) => {
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+    }
+
+    timeoutId = setTimeout(() => {
+      debouncedValue.value = newValue
+    }, delay)
+  })
+
+  return debouncedValue
+}
+```
+
 ---
 
 ## Memory Leak Prevention
 
 ### Cleanup Timeouts/Intervals
 
-```typescript
-import { useEffect, useState } from 'react';
+```vue
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue'
 
-export const MyComponent: React.FC = () => {
-    const [count, setCount] = useState(0);
+const count = ref(0)
 
-    useEffect(() => {
-        // ✅ CORRECT - Cleanup interval
-        const intervalId = setInterval(() => {
-            setCount(c => c + 1);
-        }, 1000);
+let intervalId: ReturnType<typeof setInterval> | null = null
+let timeoutId: ReturnType<typeof setTimeout> | null = null
 
-        return () => {
-            clearInterval(intervalId);  // Cleanup!
-        };
-    }, []);
+onMounted(() => {
+  // ✅ CORRECT - Setup interval
+  intervalId = setInterval(() => {
+    count.value++
+  }, 1000)
 
-    useEffect(() => {
-        // ✅ CORRECT - Cleanup timeout
-        const timeoutId = setTimeout(() => {
-            console.log('Delayed action');
-        }, 5000);
+  // ✅ CORRECT - Setup timeout
+  timeoutId = setTimeout(() => {
+    console.log('Delayed action')
+  }, 5000)
+})
 
-        return () => {
-            clearTimeout(timeoutId);  // Cleanup!
-        };
-    }, []);
+onUnmounted(() => {
+  // ✅ CORRECT - Cleanup on unmount
+  if (intervalId) {
+    clearInterval(intervalId)
+  }
 
-    return <div>{count}</div>;
-};
+  if (timeoutId) {
+    clearTimeout(timeoutId)
+  }
+})
+</script>
+
+<template>
+  <div>{{ count }}</div>
+</template>
 ```
 
 ### Cleanup Event Listeners
 
-```typescript
-useEffect(() => {
-    const handleResize = () => {
-        console.log('Resized');
-    };
+```vue
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue'
 
-    window.addEventListener('resize', handleResize);
+const windowWidth = ref(window.innerWidth)
 
-    return () => {
-        window.removeEventListener('resize', handleResize);  // Cleanup!
-    };
-}, []);
+function handleResize() {
+  windowWidth.value = window.innerWidth
+}
+
+onMounted(() => {
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  // ✅ CORRECT - Remove listener on unmount
+  window.removeEventListener('resize', handleResize)
+})
+</script>
+
+<template>
+  <div>Window width: {{ windowWidth }}px</div>
+</template>
 ```
 
-### Abort Controllers for Fetch
+### Using VueUse for Auto-Cleanup
 
-```typescript
-useEffect(() => {
-    const abortController = new AbortController();
+```vue
+<script setup lang="ts">
+import { useIntervalFn, useEventListener } from '@vueuse/core'
+import { ref } from 'vue'
 
-    fetch('/api/data', { signal: abortController.signal })
-        .then(response => response.json())
-        .then(data => setState(data))
-        .catch(error => {
-            if (error.name === 'AbortError') {
-                console.log('Fetch aborted');
-            }
-        });
+const count = ref(0)
 
-    return () => {
-        abortController.abort();  // Cleanup!
-    };
-}, []);
+// ✅ Automatically cleaned up on unmount
+const { pause, resume } = useIntervalFn(() => {
+  count.value++
+}, 1000)
+
+// ✅ Automatically cleaned up on unmount
+useEventListener(window, 'resize', () => {
+  console.log('Window resized')
+})
+</script>
+
+<template>
+  <div>
+    <p>Count: {{ count }}</p>
+    <button @click="pause">Pause</button>
+    <button @click="resume">Resume</button>
+  </div>
+</template>
 ```
 
-**Note**: With TanStack Query, this is handled automatically.
-
----
-
-## Form Performance
-
-### Watch Specific Fields (Not All)
-
-```typescript
-import { useForm } from 'react-hook-form';
-
-export const MyForm: React.FC = () => {
-    const { register, watch, handleSubmit } = useForm();
-
-    // ❌ AVOID - Watches all fields, re-renders on any change
-    const formValues = watch();
-
-    // ✅ CORRECT - Watch only what you need
-    const username = watch('username');
-    const email = watch('email');
-
-    // Or multiple specific fields
-    const [username, email] = watch(['username', 'email']);
-
-    return (
-        <form onSubmit={handleSubmit(onSubmit)}>
-            <input {...register('username')} />
-            <input {...register('email')} />
-            <input {...register('password')} />
-
-            {/* Only re-renders when username/email change */}
-            <p>Username: {username}, Email: {email}</p>
-        </form>
-    );
-};
-```
+**Note**: TanStack Query automatically handles cleanup for fetch operations.
 
 ---
 
 ## List Rendering Optimization
 
-### Key Prop Usage
+### Stable Keys with v-for
 
-```typescript
-// ✅ CORRECT - Stable unique keys
-{items.map(item => (
-    <ListItem key={item.id}>
-        {item.name}
-    </ListItem>
-))}
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
 
-// ❌ AVOID - Index as key (unstable if list changes)
-{items.map((item, index) => (
-    <ListItem key={index}>  // WRONG if list reorders
-        {item.name}
-    </ListItem>
-))}
+interface Item {
+  id: number
+  name: string
+}
+
+const items = ref<Item[]>([
+  { id: 1, name: 'Item 1' },
+  { id: 2, name: 'Item 2' },
+  { id: 3, name: 'Item 3' }
+])
+</script>
+
+<template>
+  <div>
+    <!-- ✅ CORRECT - Stable unique keys -->
+    <div v-for="item in items" :key="item.id">
+      {{ item.name }}
+    </div>
+
+    <!-- ❌ AVOID - Index as key (unstable if list changes) -->
+    <div v-for="(item, index) in items" :key="index">
+      {{ item.name }}
+    </div>
+
+    <!-- ❌ NEVER - No key at all -->
+    <div v-for="item in items">
+      {{ item.name }}
+    </div>
+  </div>
+</template>
 ```
 
-### Memoized List Items
+**Why stable keys matter:**
+- Vue reuses DOM elements efficiently
+- Prevents unnecessary re-renders
+- Maintains component state correctly
+- Essential for transitions/animations
 
-```typescript
-const ListItem = React.memo<ListItemProps>(({ item, onAction }) => {
-    return (
-        <Box onClick={() => onAction(item.id)}>
-            {item.name}
-        </Box>
-    );
-});
+### v-show vs v-if
 
-export const List: React.FC<{ items: Item[] }> = ({ items }) => {
-    const handleAction = useCallback((id: string) => {
-        console.log('Action:', id);
-    }, []);
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
 
-    return (
-        <Box>
-            {items.map(item => (
-                <ListItem
-                    key={item.id}
-                    item={item}
-                    onAction={handleAction}
-                />
-            ))}
-        </Box>
-    );
-};
+const isVisible = ref(true)
+</script>
+
+<template>
+  <div>
+    <!-- ✅ Use v-show for frequently toggled elements -->
+    <!-- Element stays in DOM, only CSS display changes -->
+    <div v-show="isVisible" class="frequently-toggled">
+      Content that toggles often
+    </div>
+
+    <!-- ✅ Use v-if for rarely shown elements -->
+    <!-- Element is added/removed from DOM -->
+    <div v-if="isVisible" class="rarely-shown">
+      Heavy component that rarely shows
+    </div>
+  </div>
+</template>
 ```
+
+**v-show (CSS display toggle):**
+- ✅ Frequently toggled (tabs, accordions)
+- ✅ Simple content
+- ❌ Initial render cost even if hidden
+
+**v-if (DOM add/remove):**
+- ✅ Rarely toggled
+- ✅ Heavy components
+- ✅ Conditional logic
+- ❌ Higher cost when toggling
 
 ---
 
-## Preventing Component Re-initialization
+## watch() Performance
 
-### The Problem
+### Debounced Watch
 
-```typescript
-// ❌ AVOID - Component recreated on every render
-export const Parent: React.FC = () => {
-    // New component definition each render!
-    const ChildComponent = () => <div>Child</div>;
+```vue
+<script setup lang="ts">
+import { ref, watch } from 'vue'
+import { useDebounceFn } from '@vueuse/core'
 
-    return <ChildComponent />;  // Unmounts and remounts every render
-};
+const searchTerm = ref('')
+const searchResults = ref([])
+
+// ✅ Debounce the watch callback
+const debouncedSearch = useDebounceFn(async (newValue: string) => {
+  if (newValue.length > 2) {
+    const results = await searchApi.search(newValue)
+    searchResults.value = results
+  }
+}, 300)
+
+watch(searchTerm, (newValue) => {
+  debouncedSearch(newValue)
+})
+</script>
+
+<template>
+  <div>
+    <input v-model="searchTerm" placeholder="Search..." />
+    <div v-for="result in searchResults" :key="result.id">
+      {{ result.name }}
+    </div>
+  </div>
+</template>
 ```
 
-### The Solution
+### Watch Specific Properties
 
-```typescript
-// ✅ CORRECT - Define outside or use useMemo
-const ChildComponent: React.FC = () => <div>Child</div>;
+```vue
+<script setup lang="ts">
+import { reactive, watch } from 'vue'
 
-export const Parent: React.FC = () => {
-    return <ChildComponent />;  // Stable component
-};
+const form = reactive({
+  username: '',
+  email: '',
+  password: '',
+  address: {
+    street: '',
+    city: ''
+  }
+})
 
-// ✅ OR if dynamic, use useMemo
-export const Parent: React.FC<{ config: Config }> = ({ config }) => {
-    const DynamicComponent = useMemo(() => {
-        return () => <div>{config.title}</div>;
-    }, [config.title]);
+// ❌ AVOID - Watches entire object (deep watch is expensive)
+watch(form, (newValue) => {
+  console.log('Form changed:', newValue)
+}, { deep: true })
 
-    return <DynamicComponent />;
-};
+// ✅ CORRECT - Watch specific properties
+watch(() => form.username, (newUsername) => {
+  console.log('Username changed:', newUsername)
+})
+
+// ✅ CORRECT - Watch multiple specific properties
+watch([() => form.username, () => form.email], ([newUsername, newEmail]) => {
+  console.log('Username or email changed:', newUsername, newEmail)
+})
+
+// ✅ CORRECT - Watch nested property
+watch(() => form.address.city, (newCity) => {
+  console.log('City changed:', newCity)
+})
+</script>
 ```
 
 ---
 
 ## Lazy Loading Heavy Dependencies
 
-### Code Splitting
+### Dynamic Imports
 
-```typescript
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+
+const isExporting = ref(false)
+
 // ❌ AVOID - Import heavy libraries at top level
-import jsPDF from 'jspdf';  // Large library loaded immediately
-import * as XLSX from 'xlsx';  // Large library loaded immediately
+// import jsPDF from 'jspdf'  // Large library loaded immediately
+// import * as XLSX from 'xlsx'  // Large library loaded immediately
 
 // ✅ CORRECT - Dynamic import when needed
-const handleExportPDF = async () => {
-    const { jsPDF } = await import('jspdf');
-    const doc = new jsPDF();
-    // Use it
-};
+async function handleExportPDF() {
+  isExporting.value = true
 
-const handleExportExcel = async () => {
-    const XLSX = await import('xlsx');
+  try {
+    const { jsPDF } = await import('jspdf')
+    const doc = new jsPDF()
     // Use it
-};
+    doc.text('Hello world', 10, 10)
+    doc.save('document.pdf')
+  } catch (error) {
+    console.error('Failed to export PDF:', error)
+  } finally {
+    isExporting.value = false
+  }
+}
+
+async function handleExportExcel() {
+  isExporting.value = true
+
+  try {
+    const XLSX = await import('xlsx')
+    const worksheet = XLSX.utils.json_to_sheet(data)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Data')
+    XLSX.writeFile(workbook, 'export.xlsx')
+  } catch (error) {
+    console.error('Failed to export Excel:', error)
+  } finally {
+    isExporting.value = false
+  }
+}
+</script>
+
+<template>
+  <div>
+    <button @click="handleExportPDF" :disabled="isExporting">
+      Export PDF
+    </button>
+    <button @click="handleExportExcel" :disabled="isExporting">
+      Export Excel
+    </button>
+  </div>
+</template>
+```
+
+### Lazy Load Components
+
+```vue
+<script setup lang="ts">
+import { ref, defineAsyncComponent } from 'vue'
+
+// ✅ Lazy load heavy components
+const HeavyChart = defineAsyncComponent(() => import('@/components/HeavyChart.vue'))
+const DataGrid = defineAsyncComponent(() => import('@/components/DataGrid.vue'))
+
+const showChart = ref(false)
+</script>
+
+<template>
+  <div>
+    <button @click="showChart = true">Show Chart</button>
+
+    <!-- Only loads when shown -->
+    <HeavyChart v-if="showChart" :data="chartData" />
+  </div>
+</template>
+```
+
+**Note**: Route-level components are automatically lazy-loaded by Vue Router with dynamic imports.
+
+---
+
+## Large List Performance
+
+### Virtual Scrolling
+
+For lists with thousands of items, use virtual scrolling:
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useVirtualList } from '@vueuse/core'
+
+interface Item {
+  id: number
+  name: string
+}
+
+const allItems = ref<Item[]>(
+  Array.from({ length: 10000 }, (_, i) => ({
+    id: i,
+    name: `Item ${i}`
+  }))
+)
+
+// ✅ Virtual scrolling - only renders visible items
+const { list, containerProps, wrapperProps } = useVirtualList(
+  allItems,
+  {
+    itemHeight: 50,  // Height of each item
+    overscan: 5       // Extra items to render outside viewport
+  }
+)
+</script>
+
+<template>
+  <div v-bind="containerProps" class="h-96 overflow-auto border">
+    <div v-bind="wrapperProps">
+      <div
+        v-for="{ data: item, index } in list"
+        :key="item.id"
+        class="h-[50px] flex items-center px-4 border-b"
+      >
+        {{ index }}: {{ item.name }}
+      </div>
+    </div>
+  </div>
+</template>
+```
+
+**When to use virtual scrolling:**
+- Lists with 1000+ items
+- Tables with many rows
+- Infinite scroll implementations
+- Chat message history
+
+---
+
+## Form Performance
+
+### Avoid Watching Entire Form
+
+```vue
+<script setup lang="ts">
+import { reactive, watch } from 'vue'
+
+const form = reactive({
+  username: '',
+  email: '',
+  password: '',
+  bio: ''
+})
+
+// ❌ AVOID - Deep watch on entire form (expensive)
+watch(form, (newValue) => {
+  console.log('Form changed:', newValue)
+}, { deep: true })
+
+// ✅ CORRECT - Watch only fields you need
+watch(() => form.username, (newUsername) => {
+  // Validate username
+  console.log('Username changed:', newUsername)
+})
+
+watch(() => form.email, (newEmail) => {
+  // Validate email
+  console.log('Email changed:', newEmail)
+})
+
+// ✅ CORRECT - Or watch multiple specific fields
+watch([() => form.username, () => form.email], ([username, email]) => {
+  console.log('Username or email changed:', username, email)
+})
+</script>
+
+<template>
+  <form>
+    <input v-model="form.username" placeholder="Username" />
+    <input v-model="form.email" type="email" placeholder="Email" />
+    <input v-model="form.password" type="password" placeholder="Password" />
+    <textarea v-model="form.bio" placeholder="Bio"></textarea>
+  </form>
+</template>
+```
+
+---
+
+## Avoiding Unnecessary Reactivity
+
+### When to Use shallowRef/shallowReactive
+
+```vue
+<script setup lang="ts">
+import { ref, shallowRef, reactive, shallowReactive } from 'vue'
+
+// ❌ Deeply reactive (more expensive)
+const deepData = ref({
+  user: {
+    profile: {
+      address: {
+        city: 'Paris'
+      }
+    }
+  }
+})
+
+// ✅ Shallow reactivity (less expensive)
+// Only top-level properties are reactive
+const shallowData = shallowRef({
+  items: [1, 2, 3],
+  config: { theme: 'dark' }
+})
+
+// When updating, replace entire object
+function updateData() {
+  // ✅ This triggers reactivity
+  shallowData.value = {
+    items: [4, 5, 6],
+    config: { theme: 'light' }
+  }
+
+  // ❌ This won't trigger reactivity
+  // shallowData.value.items.push(4)
+}
+
+// Use case: Large data structures you replace entirely
+const apiResponse = shallowRef<ApiResponse | null>(null)
+
+async function fetchData() {
+  const response = await api.getData()
+  // Replace entire object
+  apiResponse.value = response
+}
+</script>
+
+<template>
+  <div>{{ shallowData.items }}</div>
+</template>
+```
+
+**When to use shallow reactivity:**
+- Large data structures
+- Data you replace entirely (not mutate)
+- API responses
+- Read-only data
+
+---
+
+## Composable Performance
+
+### Memoize Expensive Composables
+
+```typescript
+// composables/useExpensiveCalculation.ts
+import { computed, type Ref } from 'vue'
+
+export function useExpensiveCalculation(data: Ref<number[]>) {
+  // ✅ computed() caches the result
+  const result = computed(() => {
+    // Expensive operation
+    return data.value.reduce((sum, num) => {
+      return sum + Math.sqrt(num) * Math.log(num)
+    }, 0)
+  })
+
+  const formattedResult = computed(() => {
+    return result.value.toFixed(2)
+  })
+
+  return {
+    result,
+    formattedResult
+  }
+}
+```
+
+**Usage:**
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useExpensiveCalculation } from '@/composables/useExpensiveCalculation'
+
+const numbers = ref([1, 2, 3, 4, 5])
+
+// Automatically cached
+const { result, formattedResult } = useExpensiveCalculation(numbers)
+</script>
+
+<template>
+  <div>
+    <p>Result: {{ formattedResult }}</p>
+  </div>
+</template>
+```
+
+---
+
+## Complete Example: Optimized Component
+
+```vue
+<script setup lang="ts">
+import { ref, computed, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
+import { useDebounce, useVirtualList } from '@vueuse/core'
+import { productApi } from '@/api/product'
+import type { Product } from '@/model/Product'
+
+// Lazy load heavy component
+const ProductDetails = defineAsyncComponent(() => import('@/components/ProductDetails.vue'))
+
+// Search with debounce
+const searchTerm = ref('')
+const debouncedSearchTerm = useDebounce(searchTerm, 300)
+
+// Fetch data
+const { data: products, isLoading } = useQuery({
+  queryKey: ['products', debouncedSearchTerm],
+  queryFn: () => productApi.search(debouncedSearchTerm.value)
+})
+
+// Computed filtered data (cached)
+const filteredProducts = computed(() => {
+  if (!products.value) return []
+
+  return products.value
+    .filter(p => p.inStock)
+    .sort((a, b) => a.name.localeCompare(b.name))
+})
+
+// Virtual scrolling for large lists
+const { list, containerProps, wrapperProps } = useVirtualList(
+  filteredProducts,
+  { itemHeight: 80, overscan: 5 }
+)
+
+// Cleanup event listener
+const windowWidth = ref(window.innerWidth)
+
+function handleResize() {
+  windowWidth.value = window.innerWidth
+}
+
+onMounted(() => {
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+})
+
+// Selected product
+const selectedProduct = ref<Product | null>(null)
+
+function selectProduct(product: Product) {
+  selectedProduct.value = product
+}
+</script>
+
+<template>
+  <div class="p-6">
+    <input
+      v-model="searchTerm"
+      placeholder="Search products..."
+      class="w-full p-2 border rounded mb-4"
+    />
+
+    <div class="grid grid-cols-2 gap-4">
+      <!-- Product list with virtual scrolling -->
+      <div v-bind="containerProps" class="h-96 overflow-auto border rounded">
+        <div v-if="isLoading" class="flex justify-center p-8">
+          Loading...
+        </div>
+
+        <div v-else v-bind="wrapperProps">
+          <div
+            v-for="{ data: product } in list"
+            :key="product.id"
+            class="h-[80px] flex items-center px-4 border-b cursor-pointer hover:bg-gray-50"
+            @click="selectProduct(product)"
+          >
+            <div>
+              <h3 class="font-semibold">{{ product.name }}</h3>
+              <p class="text-sm text-gray-600">${{ product.price }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product details (lazy loaded) -->
+      <div class="border rounded p-4">
+        <ProductDetails v-if="selectedProduct" :product="selectedProduct" />
+        <p v-else class="text-gray-500">Select a product to view details</p>
+      </div>
+    </div>
+
+    <div class="mt-4 text-sm text-gray-500">
+      Window width: {{ windowWidth }}px
+    </div>
+  </div>
+</template>
 ```
 
 ---
 
 ## Summary
 
-**Performance Checklist:**
-- ✅ `useMemo` for expensive computations (filter, sort, map)
-- ✅ `useCallback` for functions passed to children
-- ✅ `React.memo` for expensive components
-- ✅ Debounce search/filter (300-500ms)
-- ✅ Cleanup timeouts/intervals in useEffect
-- ✅ Watch specific form fields (not all)
-- ✅ Stable keys in lists
-- ✅ Lazy load heavy libraries
-- ✅ Code splitting with React.lazy
+**Performance Checklist for Vue 3:**
+- ✅ Use `computed()` for all derived state (filtering, sorting, transformations)
+- ✅ Debounce search/filter inputs (300-500ms)
+- ✅ Cleanup timeouts/intervals in `onUnmounted`
+- ✅ Cleanup event listeners in `onUnmounted`
+- ✅ Use stable `:key` in `v-for` (not index)
+- ✅ `v-show` for frequently toggled, `v-if` for rarely shown
+- ✅ Watch specific properties, not entire objects
+- ✅ Virtual scrolling for large lists (1000+ items)
+- ✅ Lazy load heavy libraries with dynamic imports
+- ✅ Use `shallowRef`/`shallowReactive` for large data structures
+- ✅ Route-level lazy loading handled automatically by Vue Router
+- ✅ Use `defineAsyncComponent()` for heavy components
+
+**Key Performance Principles:**
+- computed() automatically caches derived state
+- Vue's reactivity system is granular and efficient
+- Components only update when their dependencies change
+- TanStack Query handles fetch optimization automatically
+- VueUse provides optimized composables with auto-cleanup
 
 **See Also:**
-- [component-patterns.md](component-patterns.md) - Lazy loading
+- [component-patterns.md](component-patterns.md) - Component structure
 - [data-fetching.md](data-fetching.md) - TanStack Query optimization
 - [complete-examples.md](complete-examples.md) - Performance patterns in context

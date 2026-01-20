@@ -125,7 +125,7 @@ class UserController(
     }
 
     @GetMapping("/{id}")
-    fun getUser(@PathVariable id: Long): ResponseEntity<UserResponse> {
+    fun getUser(@PathVariable id: UUID): ResponseEntity<UserResponse> {
         val user = userService.getUserById(id)
         return ResponseEntity.ok(user.toResponse())
     }
@@ -157,7 +157,7 @@ class UserService(
         return user
     }
 
-    fun getUserById(id: Long): User {
+    fun getUserById(id: UUID): User {
         return userRepository.findById(id)
             ?: throw UserNotFoundException("User $id not found")
     }
@@ -176,20 +176,23 @@ See [reference.md](reference.md) for complete service patterns.
 ### 3. Repositories - Data Access with Exposed ORM
 
 ```kotlin
+import java.util.UUID
+
 @Repository
 class UserRepository {
     fun save(user: User): User {
         return transaction {
-            val id = Users.insert {
+            Users.insert {
+                it[id] = user.id
                 it[name] = user.name
                 it[email] = user.email
                 it[passwordHash] = user.passwordHash
-            } get Users.id
-            findById(id)!!
+            }
+            findById(user.id)!!
         }
     }
 
-    fun findById(id: Long): User? {
+    fun findById(id: UUID): User? {
         return transaction {
             Users.select { Users.id eq id }
                 .map { it.toUser() }
@@ -273,18 +276,32 @@ See [reference.md](reference.md) for validation patterns.
 ### 6. JWT Authentication
 
 ```kotlin
+import java.util.UUID
+
 @Component
 class JwtProvider(
     @Value("\${jwt.secret}") private val secret: String,
     @Value("\${jwt.expiration}") private val expiration: Long
 ) {
-    fun generateToken(userId: Long): String {
+    fun generateToken(userId: UUID): String {
         return Jwts.builder()
             .setSubject(userId.toString())
             .setIssuedAt(Date())
             .setExpiration(Date(System.currentTimeMillis() + expiration))
             .signWith(SignatureAlgorithm.HS512, secret)
             .compact()
+    }
+
+    fun getUserIdFromToken(token: String): UUID? {
+        return try {
+            val claims = Jwts.parser()
+                .setSigningKey(secret)
+                .parseClaimsJws(token)
+                .body
+            UUID.fromString(claims.subject)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     fun validateToken(token: String): Boolean {
@@ -324,24 +341,35 @@ See [reference.md](reference.md) for complete JWT patterns.
 
 ### Exposed ORM Basics
 
+**CRITICAL RULES:**
+- Always use UUID for primary keys, never Long/BIGSERIAL
+- Always use Instant (UTC timestamps), never LocalDateTime
+- Use `timestamp()` in Exposed, which maps to Instant
+
 ```kotlin
-// Define table
-object Users : Table() {
-    val id = long("id").autoIncrement()
+import org.jetbrains.exposed.sql.javatime.timestamp
+import java.time.Instant
+import java.util.UUID
+
+// Define table with UUID primary key and UTC timestamps
+object Users : Table("users") {
+    val id = uuid("id")
     val email = varchar("email", 255).uniqueIndex()
     val name = varchar("name", 255)
     val passwordHash = varchar("password_hash", 255)
-    val createdAt = datetime("created_at").default(LocalDateTime.now())
+    val createdAt = timestamp("created_at")
+    val updatedAt = timestamp("updated_at")
     override val primaryKey = PrimaryKey(id)
 }
 
-// Domain model
+// Domain model with UUID and Instant
 data class User(
-    val id: Long,
+    val id: UUID = UUID.randomUUID(),
     val email: String,
     val name: String,
     val passwordHash: String,
-    val createdAt: LocalDateTime
+    val createdAt: Instant = Instant.now(),
+    val updatedAt: Instant = Instant.now()
 )
 
 // Conversion function
@@ -350,20 +378,29 @@ fun ResultRow.toUser() = User(
     email = this[Users.email],
     name = this[Users.name],
     passwordHash = this[Users.passwordHash],
-    createdAt = this[Users.createdAt]
+    createdAt = this[Users.createdAt],
+    updatedAt = this[Users.updatedAt]
 )
 ```
 
 ### Flyway Migrations
 
+**CRITICAL RULES:**
+- Always enable UUID extension
+- Always use UUID for primary keys
+- Always use TIMESTAMPTZ for timestamps (stores in UTC)
+
 ```sql
 -- db/migration/V1__init_users_table.sql
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 CREATE TABLE users (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email VARCHAR(255) NOT NULL UNIQUE,
     name VARCHAR(255) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
@@ -387,7 +424,9 @@ class UserServiceTest {
     @Test
     fun `should create user successfully`() {
         val dto = CreateUserDto("john@example.com", "John")
-        val user = User(1L, dto.email, dto.name, "hashed", LocalDateTime.now())
+        val userId = UUID.randomUUID()
+        val now = Instant.now()
+        val user = User(userId, dto.email, dto.name, "hashed", now, now)
 
         whenever(userRepository.save(any())).thenReturn(user)
 
@@ -434,6 +473,8 @@ jwt:
 ## Best Practices Summary
 
 ✅ **DO:**
+- **ALWAYS use UUID for primary keys** - Never use Long/BIGSERIAL for IDs
+- **ALWAYS use UTC timestamps (Instant)** - Never use LocalDateTime for timestamps
 - Use constructor injection (immutable dependencies)
 - Keep layers separated (Controller → Service → Repository)
 - Throw meaningful exceptions
@@ -443,6 +484,8 @@ jwt:
 - Use Kotlin idioms (`val`, data classes, extension functions)
 
 ❌ **DON'T:**
+- **Use Long or BIGSERIAL for primary keys** - Always use UUID instead
+- **Use LocalDateTime for timestamps** - Always use Instant (UTC) instead
 - Put business logic in controllers
 - Use field injection with `@Autowired`
 - Return raw database objects from services

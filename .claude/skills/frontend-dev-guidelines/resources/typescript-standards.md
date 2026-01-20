@@ -1,6 +1,6 @@
 # TypeScript Standards
 
-TypeScript best practices for type safety and maintainability in React frontend code.
+TypeScript best practices for type safety and maintainability in Vue 3 frontend code.
 
 ---
 
@@ -35,22 +35,22 @@ TypeScript strict mode is **enabled** in the project:
 ```typescript
 // ❌ NEVER use any
 function handleData(data: any) {
-    return data.something;
+    return data.something
 }
 
 // ✅ Use specific types
 interface MyData {
-    something: string;
+    something: string
 }
 
 function handleData(data: MyData) {
-    return data.something;
+    return data.something
 }
 
 // ✅ Or use unknown for truly unknown data
 function handleUnknown(data: unknown) {
     if (typeof data === 'object' && data !== null && 'something' in data) {
-        return (data as MyData).something;
+        return (data as MyData).something
     }
 }
 ```
@@ -69,33 +69,49 @@ function handleUnknown(data: unknown) {
 ```typescript
 // ✅ CORRECT - Explicit return type
 function getUser(id: number): Promise<User> {
-    return apiClient.get(`/users/${id}`);
+    return apiClient.get(`/users/${id}`)
 }
 
 function calculateTotal(items: Item[]): number {
-    return items.reduce((sum, item) => sum + item.price, 0);
+    return items.reduce((sum, item) => sum + item.price, 0)
 }
 
 // ❌ AVOID - Implicit return type (less clear)
 function getUser(id: number) {
-    return apiClient.get(`/users/${id}`);
+    return apiClient.get(`/users/${id}`)
 }
 ```
 
-### Component Return Types
+### Composable Return Types
 
 ```typescript
-// React.FC already provides return type (ReactElement)
-export const MyComponent: React.FC<Props> = ({ prop }) => {
-    return <div>{prop}</div>;
-};
+// composables/useCounter.ts
+import { ref, computed } from 'vue'
 
-// For custom hooks
-function useMyData(id: number): { data: Data; isLoading: boolean } {
-    const [data, setData] = useState<Data | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+export function useCounter(initialValue = 0): {
+  count: Readonly<Ref<number>>
+  double: ComputedRef<number>
+  increment: () => void
+  decrement: () => void
+} {
+  const count = ref(initialValue)
 
-    return { data: data!, isLoading };
+  const double = computed(() => count.value * 2)
+
+  function increment() {
+    count.value++
+  }
+
+  function decrement() {
+    count.value--
+  }
+
+  return {
+    count: readonly(count),
+    double,
+    increment,
+    decrement
+  }
 }
 ```
 
@@ -107,12 +123,13 @@ function useMyData(id: number): { data: Data; isLoading: boolean } {
 
 ```typescript
 // ✅ CORRECT - Explicitly mark as type import
-import type { User } from '~types/user';
-import type { Post } from '~types/post';
-import type { SxProps, Theme } from '@mui/material';
+import type { User } from '@/model/User'
+import type { Post } from '@/model/Post'
+import type { Ref, ComputedRef } from 'vue'
+import type { RouteLocationNormalized } from 'vue-router'
 
 // ❌ AVOID - Mixed value and type imports
-import { User } from '~types/user';  // Unclear if type or value
+import { User } from '@/model/User'  // Unclear if type or value
 ```
 
 **Benefits:**
@@ -127,57 +144,108 @@ import { User } from '~types/user';  // Unclear if type or value
 
 ### Interface Pattern
 
-```typescript
+```vue
+<script setup lang="ts">
 /**
  * Props for MyComponent
  */
-interface MyComponentProps {
-    /** The user ID to display */
-    userId: number;
+interface Props {
+  /** The user ID to display */
+  userId: number
 
-    /** Optional callback when action completes */
-    onComplete?: () => void;
+  /** Optional callback when action completes */
+  onComplete?: () => void
 
-    /** Display mode for the component */
-    mode?: 'view' | 'edit';
+  /** Display mode for the component */
+  mode?: 'view' | 'edit'
 
-    /** Additional CSS classes */
-    className?: string;
+  /** Additional CSS classes */
+  className?: string
 }
 
-export const MyComponent: React.FC<MyComponentProps> = ({
-    userId,
-    onComplete,
-    mode = 'view',  // Default value
-    className,
-}) => {
-    return <div>...</div>;
-};
+const props = withDefaults(defineProps<Props>(), {
+  mode: 'view',
+  className: ''
+})
+</script>
+
+<template>
+  <div :class="className">
+    <!-- Component content -->
+  </div>
+</template>
 ```
 
 **Key Points:**
 - Separate interface for props
 - JSDoc comments for each prop
 - Optional props use `?`
-- Provide defaults in destructuring
+- Use `withDefaults` for default values
 
-### Props with Children
+### Props with Slots
 
-```typescript
-interface ContainerProps {
-    children: React.ReactNode;
-    title: string;
+```vue
+<script setup lang="ts">
+interface Props {
+  title: string
+  subtitle?: string
 }
 
-// React.FC automatically includes children type, but be explicit
-export const Container: React.FC<ContainerProps> = ({ children, title }) => {
-    return (
-        <div>
-            <h2>{title}</h2>
-            {children}
-        </div>
-    );
-};
+const props = defineProps<Props>()
+</script>
+
+<template>
+  <div>
+    <h2>{{ title }}</h2>
+    <p v-if="subtitle">{{ subtitle }}</p>
+    <slot />  <!-- Default slot -->
+    <slot name="footer" />  <!-- Named slot -->
+  </div>
+</template>
+```
+
+---
+
+## Emits Typing
+
+### Type-Safe Events
+
+```vue
+<script setup lang="ts">
+interface Props {
+  modelValue: string
+}
+
+interface Emits {
+  (e: 'update:modelValue', value: string): void
+  (e: 'submit'): void
+  (e: 'delete', id: number): void
+}
+
+const props = defineProps<Props>()
+const emit = defineEmits<Emits>()
+
+function handleInput(event: Event) {
+  const target = event.target as HTMLInputElement
+  emit('update:modelValue', target.value)
+}
+
+function handleSubmit() {
+  emit('submit')
+}
+
+function handleDelete(itemId: number) {
+  emit('delete', itemId)
+}
+</script>
+
+<template>
+  <div>
+    <input :value="modelValue" @input="handleInput" />
+    <button @click="handleSubmit">Submit</button>
+    <button @click="handleDelete(123)">Delete</button>
+  </div>
+</template>
 ```
 
 ---
@@ -188,7 +256,7 @@ export const Container: React.FC<ContainerProps> = ({ children, title }) => {
 
 ```typescript
 // Make all properties optional
-type UserUpdate = Partial<User>;
+type UserUpdate = Partial<User>
 
 function updateUser(id: number, updates: Partial<User>) {
     // updates can have any subset of User properties
@@ -199,35 +267,35 @@ function updateUser(id: number, updates: Partial<User>) {
 
 ```typescript
 // Select specific properties
-type UserPreview = Pick<User, 'id' | 'name' | 'email'>;
+type UserPreview = Pick<User, 'id' | 'name' | 'email'>
 
 const preview: UserPreview = {
     id: 1,
     name: 'John',
     email: 'john@example.com',
     // Other User properties not allowed
-};
+}
 ```
 
 ### Omit<T, K>
 
 ```typescript
 // Exclude specific properties
-type UserWithoutPassword = Omit<User, 'password' | 'passwordHash'>;
+type UserWithoutPassword = Omit<User, 'password' | 'passwordHash'>
 
 const publicUser: UserWithoutPassword = {
     id: 1,
     name: 'John',
     email: 'john@example.com',
     // password and passwordHash not allowed
-};
+}
 ```
 
 ### Required<T>
 
 ```typescript
 // Make all properties required
-type RequiredConfig = Required<Config>;  // All optional props become required
+type RequiredConfig = Required<Config>  // All optional props become required
 ```
 
 ### Record<K, V>
@@ -237,15 +305,14 @@ type RequiredConfig = Required<Config>;  // All optional props become required
 const userMap: Record<string, User> = {
     'user1': { id: 1, name: 'John' },
     'user2': { id: 2, name: 'Jane' },
-};
+}
 
-// For styles
-import type { SxProps, Theme } from '@mui/material';
-
-const styles: Record<string, SxProps<Theme>> = {
-    container: { p: 2 },
-    header: { mb: 1 },
-};
+// For variant classes
+const variantClasses: Record<string, string> = {
+    primary: 'bg-blue-500 text-white',
+    secondary: 'bg-gray-200 text-gray-900',
+    danger: 'bg-red-500 text-white'
+}
 ```
 
 ---
@@ -261,12 +328,12 @@ function isUser(data: unknown): data is User {
         data !== null &&
         'id' in data &&
         'name' in data
-    );
+    )
 }
 
 // Usage
 if (isUser(response)) {
-    console.log(response.name);  // TypeScript knows it's User
+    console.log(response.name)  // TypeScript knows it's User
 }
 ```
 
@@ -277,19 +344,18 @@ type LoadingState =
     | { status: 'idle' }
     | { status: 'loading' }
     | { status: 'success'; data: Data }
-    | { status: 'error'; error: Error };
+    | { status: 'error'; error: Error }
 
-function Component({ state }: { state: LoadingState }) {
-    // TypeScript narrows type based on status
-    if (state.status === 'success') {
-        return <Display data={state.data} />;  // data available here
-    }
+// In component
+const state = ref<LoadingState>({ status: 'idle' })
 
-    if (state.status === 'error') {
-        return <Error error={state.error} />;  // error available here
-    }
+// TypeScript narrows type based on status
+if (state.value.status === 'success') {
+    console.log(state.value.data)  // data available here
+}
 
-    return <Loading />;
+if (state.value.status === 'error') {
+    console.error(state.value.error)  // error available here
 }
 ```
 
@@ -300,38 +366,70 @@ function Component({ state }: { state: LoadingState }) {
 ### Generic Functions
 
 ```typescript
-function getById<T>(items: T[], id: number): T | undefined {
-    return items.find(item => (item as any).id === id);
+function getById<T extends { id: number }>(items: T[], id: number): T | undefined {
+    return items.find(item => item.id === id)
 }
 
 // Usage with type inference
-const users: User[] = [...];
-const user = getById(users, 123);  // Type: User | undefined
+const users: User[] = [...]
+const user = getById(users, 123)  // Type: User | undefined
 ```
 
 ### Generic Components
 
-```typescript
-interface ListProps<T> {
-    items: T[];
-    renderItem: (item: T) => React.ReactNode;
+```vue
+<!-- GenericList.vue -->
+<script setup lang="ts" generic="T">
+interface Props {
+  items: T[]
 }
 
-export function List<T>({ items, renderItem }: ListProps<T>): React.ReactElement {
-    return (
-        <div>
-            {items.map((item, index) => (
-                <div key={index}>{renderItem(item)}</div>
-            ))}
-        </div>
-    );
+const props = defineProps<Props>()
+</script>
+
+<template>
+  <div>
+    <div v-for="(item, index) in items" :key="index">
+      <slot :item="item" :index="index" />
+    </div>
+  </div>
+</template>
+
+<!-- Usage -->
+<GenericList :items="users">
+  <template #default="{ item }">
+    <UserCard :user="item" />
+  </template>
+</GenericList>
+```
+
+### Generic Composables
+
+```typescript
+// composables/useLocalStorage.ts
+import { ref, watch, type Ref } from 'vue'
+
+export function useLocalStorage<T>(
+  key: string,
+  defaultValue: T
+): Ref<T> {
+  const storedValue = localStorage.getItem(key)
+  const value = ref<T>(
+    storedValue ? JSON.parse(storedValue) : defaultValue
+  ) as Ref<T>
+
+  watch(value, (newValue) => {
+    localStorage.setItem(key, JSON.stringify(newValue))
+  }, { deep: true })
+
+  return value
 }
 
 // Usage
-<List<User>
-    items={users}
-    renderItem={(user) => <UserCard user={user} />}
-/>
+const userPreferences = useLocalStorage<UserPreferences>('preferences', {
+  theme: 'light',
+  language: 'en'
+})
 ```
 
 ---
@@ -342,22 +440,28 @@ export function List<T>({ items, renderItem }: ListProps<T>): React.ReactElement
 
 ```typescript
 // ✅ OK - When you know more than TypeScript
-const element = document.getElementById('my-element') as HTMLInputElement;
-const value = element.value;
+const element = document.getElementById('my-element') as HTMLInputElement
+const value = element.value
 
 // ✅ OK - API response that you've validated
-const response = await api.getData();
-const user = response.data as User;  // You know the shape
+const response = await api.getData()
+const user = response.data as User  // You know the shape
+
+// ✅ OK - Event target
+function handleInput(event: Event) {
+  const target = event.target as HTMLInputElement
+  console.log(target.value)
+}
 ```
 
 ### When NOT to Use
 
 ```typescript
 // ❌ AVOID - Circumventing type safety
-const data = getData() as any;  // WRONG - defeats TypeScript
+const data = getData() as any  // WRONG - defeats TypeScript
 
 // ❌ AVOID - Unsafe assertion
-const value = unknownValue as string;  // Might not actually be string
+const value = unknownValue as string  // Might not actually be string
 ```
 
 ---
@@ -368,17 +472,17 @@ const value = unknownValue as string;  // Might not actually be string
 
 ```typescript
 // ✅ CORRECT
-const name = user?.profile?.name;
+const name = user.value?.profile?.name
 
 // Equivalent to:
-const name = user && user.profile && user.profile.name;
+const name = user.value && user.value.profile && user.value.profile.name
 ```
 
 ### Nullish Coalescing
 
 ```typescript
 // ✅ CORRECT
-const displayName = user?.name ?? 'Anonymous';
+const displayName = user.value?.name ?? 'Anonymous'
 
 // Only uses default if null or undefined
 // (Different from || which triggers on '', 0, false)
@@ -388,14 +492,181 @@ const displayName = user?.name ?? 'Anonymous';
 
 ```typescript
 // ✅ OK - When you're certain value exists
-const data = queryClient.getQueryData<Data>(['data'])!;
+const data = queryClient.getQueryData<Data>(['data'])!
 
 // ⚠️ CAREFUL - Only use when you KNOW it's not null
 // Better to check explicitly:
-const data = queryClient.getQueryData<Data>(['data']);
+const data = queryClient.getQueryData<Data>(['data'])
 if (data) {
     // Use data
 }
+```
+
+---
+
+## Ref Types
+
+### Typing Refs
+
+```vue
+<script setup lang="ts">
+import { ref, type Ref } from 'vue'
+
+// ✅ CORRECT - Explicit type
+const count = ref<number>(0)
+const user = ref<User | null>(null)
+const items = ref<Item[]>([])
+
+// ✅ Type inference works too
+const message = ref('hello')  // Type: Ref<string>
+
+// ✅ Complex types
+interface FormData {
+  username: string
+  email: string
+}
+
+const formData = ref<FormData>({
+  username: '',
+  email: ''
+})
+
+// Access with .value in script
+console.log(count.value)
+console.log(user.value?.name)
+</script>
+
+<template>
+  <!-- No .value needed in template -->
+  <div>{{ count }}</div>
+  <div>{{ user?.name }}</div>
+</template>
+```
+
+### Reactive Types
+
+```vue
+<script setup lang="ts">
+import { reactive } from 'vue'
+
+interface User {
+  id: number
+  name: string
+  email: string
+}
+
+// ✅ CORRECT - Type inference
+const user = reactive<User>({
+  id: 1,
+  name: 'John',
+  email: 'john@example.com'
+})
+
+// Access without .value
+console.log(user.name)
+</script>
+
+<template>
+  <div>{{ user.name }}</div>
+</template>
+```
+
+---
+
+## Complete Example
+
+```vue
+<!-- UserProfile.vue -->
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
+import { userApi } from '@/api/user'
+import type { User } from '@/model/User'
+import type { ComputedRef } from 'vue'
+
+/**
+ * Props for UserProfile component
+ */
+interface Props {
+  /** User ID to display */
+  userId: number
+
+  /** Optional callback when profile is loaded */
+  onLoad?: (user: User) => void
+
+  /** Display mode */
+  mode?: 'compact' | 'full'
+}
+
+/**
+ * Emitted events
+ */
+interface Emits {
+  (e: 'edit', userId: number): void
+  (e: 'delete', userId: number): void
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  mode: 'full'
+})
+
+const emit = defineEmits<Emits>()
+
+// Data fetching with TanStack Query
+const { data: user, isLoading, error } = useQuery({
+  queryKey: ['user', () => props.userId],
+  queryFn: () => userApi.getUser(props.userId)
+})
+
+// Computed value with explicit type
+const displayName: ComputedRef<string> = computed(() => {
+  if (!user.value) return ''
+  return `${user.value.firstName} ${user.value.lastName}`
+})
+
+// Watch for successful load
+watch(user, (newUser) => {
+  if (newUser && props.onLoad) {
+    props.onLoad(newUser)
+  }
+})
+
+// Event handlers with function syntax
+function handleEdit() {
+  emit('edit', props.userId)
+}
+
+function handleDelete() {
+  emit('delete', props.userId)
+}
+
+// Lifecycle
+onMounted(() => {
+  console.log('UserProfile mounted for user:', props.userId)
+})
+</script>
+
+<template>
+  <div class="user-profile">
+    <div v-if="isLoading" class="loading">
+      Loading...
+    </div>
+
+    <div v-else-if="error" class="error">
+      Error: {{ error.message }}
+    </div>
+
+    <div v-else-if="user" class="content">
+      <h2>{{ displayName }}</h2>
+      <p>{{ user.email }}</p>
+
+      <div v-if="mode === 'full'" class="actions">
+        <button @click="handleEdit">Edit</button>
+        <button @click="handleDelete">Delete</button>
+      </div>
+    </div>
+  </div>
+</template>
 ```
 
 ---
@@ -408,11 +679,15 @@ if (data) {
 - ✅ Explicit return types on functions
 - ✅ Use `import type` for type imports
 - ✅ JSDoc comments on prop interfaces
+- ✅ `defineProps<Props>()` for type-safe props
+- ✅ `defineEmits<Emits>()` for type-safe events
 - ✅ Utility types (Partial, Pick, Omit, Required, Record)
 - ✅ Type guards for narrowing
 - ✅ Optional chaining and nullish coalescing
+- ✅ Explicit `Ref<T>` types when needed
 - ❌ Avoid type assertions unless necessary
 
 **See Also:**
-- [component-patterns.md](component-patterns.md) - Component typing
-- [data-fetching.md](data-fetching.md) - API typing
+- [component-patterns.md](component-patterns.md) - Component typing patterns
+- [data-fetching.md](data-fetching.md) - API typing with TanStack Query
+- [complete-examples.md](complete-examples.md) - Full typed examples

@@ -1,298 +1,43 @@
-# File Organization
+# File Organization Principles
 
-Proper file and directory structure for maintainable, scalable frontend code in the the application.
-
----
-
-## features/ vs components/ Distinction
-
-### features/ Directory
-
-**Purpose**: Domain-specific features with their own logic, API, and components
-
-**When to use:**
-- Feature has multiple related components
-- Feature has its own API endpoints
-- Feature has domain-specific logic
-- Feature has custom hooks/utilities
-
-**Examples:**
-- `features/posts/` - Project catalog/post management
-- `features/blogs/` - Blog builder and rendering
-- `features/auth/` - Authentication flows
-
-**Structure:**
-```
-features/
-  my-feature/
-    api/
-      myFeatureApi.ts         # API service layer
-    components/
-      MyFeatureMain.tsx       # Main component
-      SubComponents/          # Related components
-    hooks/
-      useMyFeature.ts         # Custom hooks
-      useSuspenseMyFeature.ts # Suspense hooks
-    helpers/
-      myFeatureHelpers.ts     # Utility functions
-    types/
-      index.ts                # TypeScript types
-    index.ts                  # Public exports
-```
-
-### components/ Directory
-
-**Purpose**: Truly reusable components used across multiple features
-
-**When to use:**
-- Component is used in 3+ places
-- Component is generic (no feature-specific logic)
-- Component is a UI primitive or pattern
-
-**Examples:**
-- `components/SuspenseLoader/` - Loading wrapper
-- `components/CustomAppBar/` - Application header
-- `components/ErrorBoundary/` - Error handling
-- `components/LoadingOverlay/` - Loading overlay
-
-**Structure:**
-```
-components/
-  SuspenseLoader/
-    SuspenseLoader.tsx
-    SuspenseLoader.test.tsx
-  CustomAppBar/
-    CustomAppBar.tsx
-    CustomAppBar.test.tsx
-```
-
----
-
-## Feature Directory Structure (Detailed)
-
-### Complete Feature Example
-
-Based on `features/posts/` structure:
-
-```
-features/
-  posts/
-    api/
-      postApi.ts              # API service layer (GET, POST, PUT, DELETE)
-
-    components/
-      PostTable.tsx           # Main container component
-      grids/
-        PostDataGrid/
-          PostDataGrid.tsx
-      drawers/
-        ProjectPostDrawer/
-          ProjectPostDrawer.tsx
-      cells/
-        editors/
-          TextEditCell.tsx
-        renderers/
-          DateCell.tsx
-      toolbar/
-        CustomToolbar.tsx
-
-    hooks/
-      usePostQueries.ts       # Regular queries
-      useSuspensePost.ts      # Suspense queries
-      usePostMutations.ts     # Mutations
-      useGridLayout.ts              # Feature-specific hooks
-
-    helpers/
-      postHelpers.ts          # Utility functions
-      validation.ts                 # Validation logic
-
-    types/
-      index.ts                      # TypeScript types/interfaces
-
-    queries/
-      postQueries.ts          # Query key factories (optional)
-
-    context/
-      PostContext.tsx         # React context (if needed)
-
-    index.ts                        # Public API exports
-```
-
-### Subdirectory Guidelines
-
-#### api/ Directory
-
-**Purpose**: Centralized API calls for the feature
-
-**Files:**
-- `{feature}Api.ts` - Main API service
-
-**Pattern:**
-```typescript
-// features/my-feature/api/myFeatureApi.ts
-import apiClient from '@/lib/apiClient';
-
-export const myFeatureApi = {
-    getItem: async (id: number) => {
-        const { data } = await apiClient.get(`/blog/items/${id}`);
-        return data;
-    },
-    createItem: async (payload) => {
-        const { data } = await apiClient.post('/blog/items', payload);
-        return data;
-    },
-};
-```
-
-#### components/ Directory
-
-**Purpose**: Feature-specific components
-
-**Organization:**
-- Flat structure if <5 components
-- Subdirectories by responsibility if >5 components
-
-**Examples:**
-```
-components/
-  MyFeatureMain.tsx           # Main component
-  MyFeatureHeader.tsx         # Supporting components
-  MyFeatureFooter.tsx
-
-  # OR with subdirectories:
-  containers/
-    MyFeatureContainer.tsx
-  presentational/
-    MyFeatureDisplay.tsx
-  blogs/
-    MyFeatureBlog.tsx
-```
-
-#### hooks/ Directory
-
-**Purpose**: Custom hooks for the feature
-
-**Naming:**
-- `use` prefix (camelCase)
-- Descriptive of what they do
-
-**Examples:**
-```
-hooks/
-  useMyFeature.ts               # Main hook
-  useSuspenseMyFeature.ts       # Suspense version
-  useMyFeatureMutations.ts      # Mutations
-  useMyFeatureFilters.ts        # Filters/search
-```
-
-#### helpers/ Directory
-
-**Purpose**: Utility functions specific to the feature
-
-**Examples:**
-```
-helpers/
-  myFeatureHelpers.ts           # General utilities
-  validation.ts                 # Validation logic
-  transblogers.ts               # Data transblogations
-  constants.ts                  # Constants
-```
-
-#### types/ Directory
-
-**Purpose**: TypeScript types and interfaces
-
-**Files:**
-```
-types/
-  index.ts                      # Main types, exported
-  internal.ts                   # Internal types (not exported)
-```
-
----
-
-## Import Aliases (Vite Configuration)
-
-### Available Aliases
-
-From `vite.config.ts` lines 180-185:
-
-| Alias | Resolves To | Use For |
-|-------|-------------|---------|
-| `@/` | `src/` | Absolute imports from src root |
-| `~types` | `src/types` | Shared TypeScript types |
-| `~components` | `src/components` | Reusable components |
-| `~features` | `src/features` | Feature imports |
-
-### Usage Examples
-
-```typescript
-// ✅ PREFERRED - Use aliases for absolute imports
-import { apiClient } from '@/lib/apiClient';
-import { SuspenseLoader } from '~components/SuspenseLoader';
-import { postApi } from '~features/posts/api/postApi';
-import type { User } from '~types/user';
-
-// ❌ AVOID - Relative paths from deep nesting
-import { apiClient } from '../../../lib/apiClient';
-import { SuspenseLoader } from '../../../components/SuspenseLoader';
-```
-
-### When to Use Which Alias
-
-**@/ (General)**:
-- Lib utilities: `@/lib/apiClient`
-- Hooks: `@/hooks/useAuth`
-- Config: `@/config/theme`
-- Shared services: `@/services/authService`
-
-**~types (Type Imports)**:
-```typescript
-import type { Post } from '~types/post';
-import type { User, UserRole } from '~types/user';
-```
-
-**~components (Reusable Components)**:
-```typescript
-import { SuspenseLoader } from '~components/SuspenseLoader';
-import { CustomAppBar } from '~components/CustomAppBar';
-import { ErrorBoundary } from '~components/ErrorBoundary';
-```
-
-**~features (Feature Imports)**:
-```typescript
-import { postApi } from '~features/posts/api/postApi';
-import { useAuth } from '~features/auth/hooks/useAuth';
-```
+General organization principles for maintainable Vue 3 code. Project-specific structure is defined in your project's documentation.
 
 ---
 
 ## File Naming Conventions
 
-### Components
+### Vue Components
 
-**Pattern**: PascalCase with `.tsx` extension
+**Pattern**: PascalCase with `.vue` extension
 
 ```
-MyComponent.tsx
-PostDataGrid.tsx
-CustomAppBar.tsx
+✅ CORRECT:
+UserProfile.vue
+DataTable.vue
+AppHeader.vue
+LoginForm.vue
+
+❌ AVOID:
+userProfile.vue       // camelCase
+user-profile.vue      // kebab-case
+USERPROFILE.vue      // All caps
 ```
 
-**Avoid:**
-- camelCase: `myComponent.tsx` ❌
-- kebab-case: `my-component.tsx` ❌
-- All caps: `MYCOMPONENT.tsx` ❌
-
-### Hooks
+### Composables
 
 **Pattern**: camelCase with `use` prefix, `.ts` extension
 
 ```
-useMyFeature.ts
-useSuspensePost.ts
+✅ CORRECT:
 useAuth.ts
-useGridLayout.ts
+useCounter.ts
+useDebounce.ts
+useLocalStorage.ts
+
+❌ AVOID:
+UseAuth.ts           // PascalCase
+auth.ts              // Missing 'use' prefix
+use-auth.ts          // kebab-case
 ```
 
 ### API Services
@@ -300,203 +45,436 @@ useGridLayout.ts
 **Pattern**: camelCase with `Api` suffix, `.ts` extension
 
 ```
-myFeatureApi.ts
-postApi.ts
+✅ CORRECT:
 userApi.ts
+postApi.ts
+authApi.ts
+productApi.ts
+
+❌ AVOID:
+UserApi.ts           // PascalCase
+user.ts              // Missing 'Api' suffix
+user-api.ts          // kebab-case
 ```
 
-### Helpers/Utilities
+### Type Files
 
-**Pattern**: camelCase with descriptive name, `.ts` extension
+**Pattern**: PascalCase, `.ts` extension
 
 ```
-myFeatureHelpers.ts
+✅ CORRECT:
+User.ts
+Post.ts
+ApiResponse.ts
+FormData.ts
+
+❌ AVOID:
+user.ts              // camelCase
+user-type.ts         // kebab-case
+IUser.ts             // Hungarian notation (not needed in TypeScript)
+```
+
+### Utilities/Helpers
+
+**Pattern**: camelCase, `.ts` extension
+
+```
+✅ CORRECT:
 validation.ts
-transblogers.ts
+formatting.ts
 constants.ts
-```
+dateUtils.ts
 
-### Types
-
-**Pattern**: camelCase, `index.ts` or descriptive name
-
-```
-types/index.ts
-types/post.ts
-types/user.ts
+❌ AVOID:
+Validation.ts        // PascalCase
+validation-utils.ts  // kebab-case
 ```
 
 ---
 
-## When to Create a New Feature
+## Component Organization
 
-### Create New Feature When:
+### Single File Components (SFC)
 
-- Multiple related components (>3)
-- Has own API endpoints
-- Domain-specific logic
-- Will grow over time
-- Reused across multiple routes
+Every Vue component should be a `.vue` file with three sections:
 
-**Example:** `features/posts/`
-- 20+ components
-- Own API service
-- Complex state management
-- Used in multiple routes
+```vue
+<script setup lang="ts">
+// Component logic
+import { ref } from 'vue'
 
-### Add to Existing Feature When:
+const count = ref(0)
+</script>
 
-- Related to existing feature
-- Shares same API
-- Logically grouped
-- Extends existing functionality
+<template>
+  <!-- Component template -->
+  <div>{{ count }}</div>
+</template>
 
-**Example:** Adding export dialog to posts feature
+<style scoped>
+/* Component styles (optional) */
+</style>
+```
 
-### Create Reusable Component When:
+### When to Split Components
 
-- Used across 3+ features
-- Generic, no domain logic
-- Pure presentation
-- Shared pattern
+**Create separate components when:**
+- Component exceeds 200-300 lines
+- Reusable section appears 2+ times
+- Distinct responsibility/concern
+- Complex nested template
 
-**Example:** `components/SuspenseLoader/`
+**Keep together when:**
+- Component < 200 lines
+- Tightly coupled logic
+- Not reusable elsewhere
+- Simple presentation
+
+---
+
+## Composable Organization
+
+### What Goes in a Composable
+
+```typescript
+// ✅ GOOD - Reusable logic
+export function useCounter(initialValue = 0) {
+  const count = ref(initialValue)
+
+  function increment() {
+    count.value++
+  }
+
+  return { count, increment }
+}
+
+// ✅ GOOD - Stateful logic
+export function useAuth() {
+  const user = ref<User | null>(null)
+  const isAuthenticated = computed(() => !!user.value)
+
+  async function login(credentials: Credentials) {
+    // Login logic
+  }
+
+  return { user, isAuthenticated, login }
+}
+
+// ❌ AVOID - Simple utilities (use regular functions)
+export function useAdd(a: number, b: number) {
+  return a + b  // Just use a regular function
+}
+```
+
+### Composable vs Regular Function
+
+**Use composable when:**
+- Manages reactive state
+- Uses Vue lifecycle (onMounted, watch, etc.)
+- Returns reactive refs/computed
+- Reusable across components
+
+**Use regular function when:**
+- Pure computation (no state)
+- Simple utility
+- No Vue-specific features
+- Just transforms data
+
+---
+
+## API Service Organization
+
+### API Service Pattern
+
+```typescript
+// api/userApi.ts
+import axios from 'axios'
+import type { User, UserDTO } from '@/model/User'
+
+const API_BASE = '/api'
+
+export const userApi = {
+  /**
+   * Get user by ID
+   */
+  async getUser(id: number): Promise<User> {
+    const response = await axios.get<UserDTO>(`${API_BASE}/users/${id}`)
+    return userMapper.toModel(response.data)
+  },
+
+  /**
+   * Get all users
+   */
+  async getUsers(): Promise<User[]> {
+    const response = await axios.get<UserDTO[]>(`${API_BASE}/users`)
+    return response.data.map(userMapper.toModel)
+  },
+
+  /**
+   * Create new user
+   */
+  async createUser(userData: Partial<User>): Promise<User> {
+    const dto = userMapper.toDTO(userData)
+    const response = await axios.post<UserDTO>(`${API_BASE}/users`, dto)
+    return userMapper.toModel(response.data)
+  }
+}
+```
+
+**Key principles:**
+- One API file per domain/feature
+- Export object with methods
+- JSDoc comments
+- Use mappers for DTO transformation
+- Explicit return types
 
 ---
 
 ## Import Organization
 
-### Import Order (Recommended)
+### Recommended Import Order
 
-```typescript
-// 1. React and React-related
-import React, { useState, useCallback, useMemo } from 'react';
-import { lazy } from 'react';
+```vue
+<script setup lang="ts">
+// 1. Vue core
+import { ref, computed, watch, onMounted } from 'vue'
 
-// 2. Third-party libraries (alphabetical)
-import { Box, Paper, Button, Grid } from '@mui/material';
-import type { SxProps, Theme } from '@mui/material';
-import { useSuspenseQuery, useQueryClient } from '@tanstack/react-query';
-import { createFileRoute } from '@tanstack/react-router';
+// 2. Vue ecosystem
+import { useRouter, useRoute } from 'vue-router'
 
-// 3. Alias imports (@ first, then ~)
-import { apiClient } from '@/lib/apiClient';
-import { useAuth } from '@/hooks/useAuth';
-import { useMuiSnackbar } from '@/hooks/useMuiSnackbar';
-import { SuspenseLoader } from '~components/SuspenseLoader';
-import { postApi } from '~features/posts/api/postApi';
+// 3. Third-party libraries
+import { useQuery, useMutation } from '@tanstack/vue-query'
+import { useDebounce } from '@vueuse/core'
 
-// 4. Type imports (grouped)
-import type { Post } from '~types/post';
-import type { User } from '~types/user';
+// 4. Type imports (grouped together)
+import type { User } from '@/model/User'
+import type { Post } from '@/model/Post'
+import type { Ref, ComputedRef } from 'vue'
 
-// 5. Relative imports (same feature)
-import { MySubComponent } from './MySubComponent';
-import { useMyFeature } from '../hooks/useMyFeature';
-import { myFeatureHelpers } from '../helpers/myFeatureHelpers';
+// 5. Project imports (organized by category)
+import { userApi } from '@/api/user'
+import { useAuth } from '@/composables/useAuth'
+import { Button } from '@/components/ui/button'
+
+// 6. Relative imports (same directory/feature)
+import SubComponent from './SubComponent.vue'
+import { useFeature } from '../composables/useFeature'
+</script>
 ```
 
-**Use single quotes** for all imports (project standard)
+**Key points:**
+- Group by source (Vue → ecosystem → third-party → project)
+- Type imports together with `import type`
+- Blank lines between groups
+- Alphabetical within groups
+
+---
+
+## Type Organization
+
+### Type Files
+
+```typescript
+// model/User.ts
+
+// Domain model (what your app uses)
+export interface User {
+  id: number
+  firstName: string
+  lastName: string
+  email: string
+  createdAt: Date
+}
+
+// DTO (what API returns)
+export interface UserDTO {
+  id: number
+  first_name: string
+  last_name: string
+  email: string
+  created_at: string
+}
+
+// Input types (what API accepts)
+export interface UserCreateInput {
+  firstName: string
+  lastName: string
+  email: string
+  password: string
+}
+
+export interface UserUpdateInput {
+  firstName?: string
+  lastName?: string
+  email?: string
+}
+```
+
+### Mapper Pattern
+
+```typescript
+// model/mappers/userMapper.ts
+import type { User, UserDTO } from '../User'
+
+export const userMapper = {
+  toModel(dto: UserDTO): User {
+    return {
+      id: dto.id,
+      firstName: dto.first_name,
+      lastName: dto.last_name,
+      email: dto.email,
+      createdAt: new Date(dto.created_at)
+    }
+  },
+
+  toDTO(user: Partial<User>): Partial<UserDTO> {
+    return {
+      first_name: user.firstName,
+      last_name: user.lastName,
+      email: user.email
+    }
+  }
+}
+```
+
+---
+
+## Co-location Principle
+
+### Keep Related Files Together
+
+Instead of organizing by file type:
+```
+❌ AVOID:
+components/
+  UserList.vue
+  UserDetail.vue
+  PostList.vue
+  PostDetail.vue
+composables/
+  useUser.ts
+  usePost.ts
+api/
+  userApi.ts
+  postApi.ts
+```
+
+Organize by feature/domain:
+```
+✅ PREFER:
+users/
+  components/
+    UserList.vue
+    UserDetail.vue
+  composables/
+    useUser.ts
+  api/
+    userApi.ts
+
+posts/
+  components/
+    PostList.vue
+    PostDetail.vue
+  composables/
+    usePost.ts
+  api/
+    postApi.ts
+```
+
+**Benefits:**
+- Easy to find related code
+- Clear feature boundaries
+- Easy to move/remove features
+- Better code organization
 
 ---
 
 ## Public API Pattern
 
-### feature/index.ts
+### Feature Index File
 
-Export public API from feature for clean imports:
+Create `index.ts` to export public API:
 
 ```typescript
-// features/my-feature/index.ts
+// users/index.ts
 
-// Export main components
-export { MyFeatureMain } from './components/MyFeatureMain';
-export { MyFeatureHeader } from './components/MyFeatureHeader';
+// Export components
+export { default as UserList } from './components/UserList.vue'
+export { default as UserDetail } from './components/UserDetail.vue'
 
-// Export hooks
-export { useMyFeature } from './hooks/useMyFeature';
-export { useSuspenseMyFeature } from './hooks/useSuspenseMyFeature';
+// Export composables
+export { useUser } from './composables/useUser'
 
 // Export API
-export { myFeatureApi } from './api/myFeatureApi';
+export { userApi } from './api/userApi'
 
 // Export types
-export type { MyFeatureData, MyFeatureConfig } from './types';
+export type { User, UserCreateInput } from './types'
 ```
 
 **Usage:**
-```typescript
-// ✅ Clean import from feature index
-import { MyFeatureMain, useMyFeature } from '~features/my-feature';
+```vue
+<script setup lang="ts">
+// ✅ Clean import
+import { UserList, useUser } from '@/features/users'
 
-// ❌ Avoid deep imports (but OK if needed)
-import { MyFeatureMain } from '~features/my-feature/components/MyFeatureMain';
+// ❌ Deep import (works but less clean)
+import UserList from '@/features/users/components/UserList.vue'
+</script>
 ```
 
 ---
 
-## Directory Structure Visualization
+## When to Create What
 
-```
-src/
-├── features/                    # Domain-specific features
-│   ├── posts/
-│   │   ├── api/
-│   │   ├── components/
-│   │   ├── hooks/
-│   │   ├── helpers/
-│   │   ├── types/
-│   │   └── index.ts
-│   ├── blogs/
-│   └── auth/
-│
-├── components/                  # Reusable components
-│   ├── SuspenseLoader/
-│   ├── CustomAppBar/
-│   ├── ErrorBoundary/
-│   └── LoadingOverlay/
-│
-├── routes/                      # TanStack Router routes
-│   ├── __root.tsx
-│   ├── index.tsx
-│   ├── project-catalog/
-│   │   ├── index.tsx
-│   │   └── create/
-│   └── blogs/
-│
-├── hooks/                       # Shared hooks
-│   ├── useAuth.ts
-│   ├── useMuiSnackbar.ts
-│   └── useDebounce.ts
-│
-├── lib/                         # Shared utilities
-│   ├── apiClient.ts
-│   └── utils.ts
-│
-├── types/                       # Shared TypeScript types
-│   ├── user.ts
-│   ├── post.ts
-│   └── common.ts
-│
-├── config/                      # Configuration
-│   └── theme.ts
-│
-└── App.tsx                      # Root component
-```
+### Create New Component When:
+- Logic exceeds 200-300 lines
+- Template is complex/nested
+- Section is reused 2+ times
+- Distinct responsibility
+- Can be tested independently
+
+### Create Composable When:
+- Reusable reactive logic
+- Uses Vue lifecycle hooks
+- Manages stateful logic
+- Shared across 2+ components
+
+### Create API Service When:
+- Feature has API endpoints
+- Multiple API calls for same domain
+- Need centralized error handling
+- Want to mock for testing
+
+### Create Type File When:
+- Types used in 3+ places
+- Complex domain models
+- API DTOs need mapping
+- Shared types across features
 
 ---
 
 ## Summary
 
-**Key Principles:**
-1. **features/** for domain-specific code
-2. **components/** for truly reusable UI
-3. Use subdirectories: api/, components/, hooks/, helpers/, types/
-4. Import aliases for clean imports (@/, ~types, ~components, ~features)
-5. Consistent naming: PascalCase components, camelCase utilities
-6. Export public API from feature index.ts
+**Naming Conventions:**
+- Components: PascalCase + `.vue`
+- Composables: camelCase + `use` prefix + `.ts`
+- API Services: camelCase + `Api` suffix + `.ts`
+- Types: PascalCase + `.ts`
+- Utilities: camelCase + `.ts`
+
+**Organization Principles:**
+1. **Co-location**: Keep related files together
+2. **Feature-based**: Organize by domain, not file type
+3. **Public API**: Export from index.ts for clean imports
+4. **Separation of Concerns**: Components, logic, types separate
+5. **Reusability**: Share when used 2-3+ times
+
+**File Extensions:**
+- `.vue` for components
+- `.ts` for composables, APIs, types, utilities
 
 **See Also:**
 - [component-patterns.md](component-patterns.md) - Component structure
-- [data-fetching.md](data-fetching.md) - API service patterns
-- [complete-examples.md](complete-examples.md) - Full feature example
+- [data-fetching.md](data-fetching.md) - API patterns
+- [typescript-standards.md](typescript-standards.md) - Type organization

@@ -1,767 +1,553 @@
 # Data Fetching Patterns
 
-Modern data fetching using TanStack Query with Suspense boundaries, cache-first strategies, and centralized API services.
+Modern data fetching using TanStack Query (Vue) with cache-first strategies and centralized API services.
 
 ---
 
-## PRIMARY PATTERN: useSuspenseQuery
+## PRIMARY PATTERN: useQuery
 
-### Why useSuspenseQuery?
+### Why useQuery?
 
-For **all new components**, use `useSuspenseQuery` instead of regular `useQuery`:
+For **all data fetching**, use `useQuery` from `@tanstack/vue-query`:
 
 **Benefits:**
-- No `isLoading` checks needed
-- Integrates with Suspense boundaries
-- Cleaner component code
-- Consistent loading UX
-- Better error handling with error boundaries
+- Automatic caching and cache invalidation
+- Background refetching
+- Optimistic updates
+- Type-safe with generics
+- Returns reactive refs in Vue
+- Reduces boilerplate code
 
 ### Basic Pattern
 
-```typescript
-import { useSuspenseQuery } from '@tanstack/react-query';
-import { myFeatureApi } from '../api/myFeatureApi';
+```vue
+<script setup lang="ts">
+import { useQuery } from '@tanstack/vue-query'
+import { myFeatureApi } from '@/api/myFeature'
+import type { MyEntity } from '@/model/MyEntity'
 
-export const MyComponent: React.FC<Props> = ({ id }) => {
-    // No isLoading - Suspense handles it!
-    const { data } = useSuspenseQuery({
-        queryKey: ['myEntity', id],
-        queryFn: () => myFeatureApi.getEntity(id),
-    });
+interface Props {
+  id: number
+}
 
-    // data is ALWAYS defined here (not undefined | Data)
-    return <div>{data.name}</div>;
-};
+const props = defineProps<Props>()
 
-// Wrap in Suspense boundary
-<SuspenseLoader>
-    <MyComponent id={123} />
-</SuspenseLoader>
+// useQuery returns reactive refs
+const { data, isLoading, error, isError } = useQuery({
+  queryKey: ['myEntity', () => props.id],
+  queryFn: () => myFeatureApi.getEntity(props.id)
+})
+</script>
+
+<template>
+  <div>
+    <div v-if="isLoading">Loading...</div>
+    <div v-else-if="isError">Error: {{ error.message }}</div>
+    <div v-else>
+      <h2>{{ data.name }}</h2>
+      <p>{{ data.description }}</p>
+    </div>
+  </div>
+</template>
 ```
 
-### useSuspenseQuery vs useQuery
+**Key Points:**
+- All return values are reactive refs (use `.value` in script)
+- Data is `undefined` until loaded (check with `v-if` or optional chaining)
+- Query key array with reactive dependencies
 
-| Feature | useSuspenseQuery | useQuery |
-|---------|------------------|----------|
-| Loading state | Handled by Suspense | Manual `isLoading` check |
-| Data type | Always defined | `Data \| undefined` |
-| Use with | Suspense boundaries | Traditional components |
-| Recommended for | **NEW components** | Legacy code only |
-| Error handling | Error boundaries | Manual error state |
+---
 
-**When to use regular useQuery:**
-- Maintaining legacy code
-- Very simple cases without Suspense
-- Polling with background updates
+## Query Keys with Reactive Dependencies
 
-**For new components: Always prefer useSuspenseQuery**
+### Using Function in Query Key
+
+When query depends on reactive props or refs, wrap them in a function:
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
+import { postApi } from '@/api/post'
+
+interface Props {
+  userId: number
+}
+
+const props = defineProps<Props>()
+const filter = ref('all')
+
+// Reactive dependencies in query key
+const { data } = useQuery({
+  queryKey: ['posts', () => props.userId, () => filter.value],
+  queryFn: () => postApi.getPosts(props.userId, filter.value)
+})
+
+function updateFilter(newFilter: string) {
+  filter.value = newFilter // Query will automatically refetch
+}
+</script>
+
+<template>
+  <div>
+    <button @click="updateFilter('active')">Active</button>
+    <button @click="updateFilter('completed')">Completed</button>
+
+    <div v-for="post in data" :key="post.id">
+      {{ post.title }}
+    </div>
+  </div>
+</template>
+```
 
 ---
 
 ## Cache-First Strategy
 
-### Cache-First Pattern Example
+### Checking Cache Before API Call
 
 **Smart caching** reduces API calls by checking React Query cache first:
 
 ```typescript
-import { useSuspenseQuery, useQueryClient } from '@tanstack/react-query';
-import { postApi } from '../api/postApi';
+// composables/usePost.ts
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
+import { postApi } from '@/api/post'
+import type { Post } from '@/model/Post'
 
-export function useSuspensePost(postId: number) {
-    const queryClient = useQueryClient();
+export function usePost(postId: Ref<number>) {
+  const queryClient = useQueryClient()
 
-    return useSuspenseQuery({
-        queryKey: ['post', postId],
-        queryFn: async () => {
-            // Strategy 1: Try to get from list cache first
-            const cachedListData = queryClient.getQueryData<{ posts: Post[] }>([
-                'posts',
-                'list'
-            ]);
+  return useQuery({
+    queryKey: ['post', postId],
+    queryFn: async () => {
+      // Strategy 1: Try to get from list cache first
+      const cachedListData = queryClient.getQueryData<{ posts: Post[] }>([
+        'posts',
+        'list'
+      ])
 
-            if (cachedListData?.posts) {
-                const cachedPost = cachedListData.posts.find(
-                    (post) => post.id === postId
-                );
+      if (cachedListData?.posts) {
+        const cachedPost = cachedListData.posts.find(
+          (post) => post.id === postId.value
+        )
 
-                if (cachedPost) {
-                    return cachedPost;  // Return from cache!
-                }
-            }
+        if (cachedPost) {
+          return cachedPost  // Return from cache!
+        }
+      }
 
-            // Strategy 2: Not in cache, fetch from API
-            return postApi.getPost(postId);
-        },
-        staleTime: 5 * 60 * 1000,      // Consider fresh for 5 minutes
-        gcTime: 10 * 60 * 1000,         // Keep in cache for 10 minutes
-        refetchOnWindowFocus: false,    // Don't refetch on focus
-    });
+      // Strategy 2: Not in cache, fetch from API
+      return postApi.getPost(postId.value)
+    },
+    staleTime: 5 * 60 * 1000,      // Consider fresh for 5 minutes
+    gcTime: 10 * 60 * 1000,         // Keep in cache for 10 minutes
+    refetchOnWindowFocus: false,    // Don't refetch on focus
+  })
+}
+```
+
+---
+
+## API Service Layer
+
+### Structure
+
+Create dedicated API files per feature/domain:
+
+```
+src/
+  api/
+    auth.ts          # Authentication endpoints
+    user.ts          # User management
+    post.ts          # Posts feature
+    comment.ts       # Comments feature
+```
+
+### API File Pattern
+
+```typescript
+// api/user.ts
+import axios from 'axios'
+import type { User, UserDTO } from '@/model/User'
+import { userMapper } from '@/model/mappers/userMapper'
+
+const API_BASE = '/api'
+
+export const userApi = {
+  /**
+   * Get user by ID
+   */
+  async getUser(id: number): Promise<User> {
+    const response = await axios.get<UserDTO>(`${API_BASE}/users/${id}`)
+    return userMapper.toModel(response.data)
+  },
+
+  /**
+   * Get all users
+   */
+  async getUsers(): Promise<User[]> {
+    const response = await axios.get<UserDTO[]>(`${API_BASE}/users`)
+    return response.data.map(userMapper.toModel)
+  },
+
+  /**
+   * Create new user
+   */
+  async createUser(userData: Partial<User>): Promise<User> {
+    const dto = userMapper.toDTO(userData)
+    const response = await axios.post<UserDTO>(`${API_BASE}/users`, dto)
+    return userMapper.toModel(response.data)
+  },
+
+  /**
+   * Update user
+   */
+  async updateUser(id: number, updates: Partial<User>): Promise<User> {
+    const dto = userMapper.toDTO(updates)
+    const response = await axios.put<UserDTO>(`${API_BASE}/users/${id}`, dto)
+    return userMapper.toModel(response.data)
+  },
+
+  /**
+   * Delete user
+   */
+  async deleteUser(id: number): Promise<void> {
+    await axios.delete(`${API_BASE}/users/${id}`)
+  }
 }
 ```
 
 **Key Points:**
-- Check grid/list cache before API call
-- Avoids redundant requests
-- `staleTime`: How long data is considered fresh
-- `gcTime`: How long unused data stays in cache
-- `refetchOnWindowFocus: false`: User preference
+- Export object with methods
+- Use axios or fetch
+- Transform DTOs to domain models with mappers
+- Add JSDoc comments
+- Explicit return types
 
 ---
 
-## Parallel Data Fetching
+## Mutations (Create, Update, Delete)
 
-### useSuspenseQueries
+### useMutation Pattern
 
-When fetching multiple independent resources:
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useMutation, useQueryClient } from '@tanstack/vue-query'
+import { userApi } from '@/api/user'
+import type { User } from '@/model/User'
 
-```typescript
-import { useSuspenseQueries } from '@tanstack/react-query';
+const queryClient = useQueryClient()
 
-export const MyComponent: React.FC = () => {
-    const [userQuery, settingsQuery, preferencesQuery] = useSuspenseQueries({
-        queries: [
-            {
-                queryKey: ['user'],
-                queryFn: () => userApi.getCurrentUser(),
-            },
-            {
-                queryKey: ['settings'],
-                queryFn: () => settingsApi.getSettings(),
-            },
-            {
-                queryKey: ['preferences'],
-                queryFn: () => preferencesApi.getPreferences(),
-            },
-        ],
-    });
+// Create mutation
+const createUserMutation = useMutation({
+  mutationFn: (userData: Partial<User>) => userApi.createUser(userData),
+  onSuccess: (newUser) => {
+    // Invalidate and refetch
+    queryClient.invalidateQueries({ queryKey: ['users'] })
+    console.log('User created:', newUser)
+  },
+  onError: (error) => {
+    console.error('Failed to create user:', error)
+  }
+})
 
-    // All data available, Suspense handles loading
-    const user = userQuery.data;
-    const settings = settingsQuery.data;
-    const preferences = preferencesQuery.data;
+// Update mutation
+const updateUserMutation = useMutation({
+  mutationFn: ({ id, updates }: { id: number; updates: Partial<User> }) =>
+    userApi.updateUser(id, updates),
+  onSuccess: (updatedUser) => {
+    // Invalidate specific query
+    queryClient.invalidateQueries({ queryKey: ['user', updatedUser.id] })
+    queryClient.invalidateQueries({ queryKey: ['users'] })
+  }
+})
 
-    return <Display user={user} settings={settings} prefs={preferences} />;
-};
-```
+// Delete mutation
+const deleteUserMutation = useMutation({
+  mutationFn: (id: number) => userApi.deleteUser(id),
+  onSuccess: (_, deletedId) => {
+    queryClient.invalidateQueries({ queryKey: ['users'] })
+    // Remove from cache
+    queryClient.removeQueries({ queryKey: ['user', deletedId] })
+  }
+})
 
-**Benefits:**
-- All queries in parallel
-- Single Suspense boundary
-- Type-safe results
-
----
-
-## Query Keys Organization
-
-### Naming Convention
-
-```typescript
-// Entity list
-['entities', blogId]
-['entities', blogId, 'summary']    // With view mode
-['entities', blogId, 'flat']
-
-// Single entity
-['entity', blogId, entityId]
-
-// Related data
-['entity', entityId, 'history']
-['entity', entityId, 'comments']
-
-// User-specific
-['user', userId, 'profile']
-['user', userId, 'permissions']
-```
-
-**Rules:**
-- Start with entity name (plural for lists, singular for one)
-- Include IDs for specificity
-- Add view mode / relationship at end
-- Consistent across app
-
-### Query Key Examples
-
-```typescript
-// From useSuspensePost.ts
-queryKey: ['post', blogId, postId]
-queryKey: ['posts-v2', blogId, 'summary']
-
-// Invalidation patterns
-queryClient.invalidateQueries({ queryKey: ['post', blogId] });  // All posts for form
-queryClient.invalidateQueries({ queryKey: ['post'] });          // All posts
-```
-
----
-
-## API Service Layer Pattern
-
-### File Structure
-
-Create centralized API service per feature:
-
-```
-features/
-  my-feature/
-    api/
-      myFeatureApi.ts    # Service layer
-```
-
-### Service Pattern (from postApi.ts)
-
-```typescript
-/**
- * Centralized API service for my-feature operations
- * Uses apiClient for consistent error handling
- */
-import apiClient from '@/lib/apiClient';
-import type { MyEntity, UpdatePayload } from '../types';
-
-export const myFeatureApi = {
-    /**
-     * Fetch a single entity
-     */
-    getEntity: async (blogId: number, entityId: number): Promise<MyEntity> => {
-        const { data } = await apiClient.get(
-            `/blog/entities/${blogId}/${entityId}`
-        );
-        return data;
-    },
-
-    /**
-     * Fetch all entities for a form
-     */
-    getEntities: async (blogId: number, view: 'summary' | 'flat'): Promise<MyEntity[]> => {
-        const { data } = await apiClient.get(
-            `/blog/entities/${blogId}`,
-            { params: { view } }
-        );
-        return data.rows;
-    },
-
-    /**
-     * Update entity
-     */
-    updateEntity: async (
-        blogId: number,
-        entityId: number,
-        payload: UpdatePayload
-    ): Promise<MyEntity> => {
-        const { data } = await apiClient.put(
-            `/blog/entities/${blogId}/${entityId}`,
-            payload
-        );
-        return data;
-    },
-
-    /**
-     * Delete entity
-     */
-    deleteEntity: async (blogId: number, entityId: number): Promise<void> => {
-        await apiClient.delete(`/blog/entities/${blogId}/${entityId}`);
-    },
-};
-```
-
-**Key Points:**
-- Export single object with methods
-- Use `apiClient` (axios instance from `@/lib/apiClient`)
-- Type-safe parameters and returns
-- JSDoc comments for each method
-- Centralized error handling (apiClient handles it)
-
----
-
-## Route Format Rules (IMPORTANT)
-
-### Correct Format
-
-```typescript
-// ✅ CORRECT - Direct service path
-await apiClient.get('/blog/posts/123');
-await apiClient.post('/projects/create', data);
-await apiClient.put('/users/update/456', updates);
-await apiClient.get('/email/templates');
-
-// ❌ WRONG - Do NOT add /api/ prefix
-await apiClient.get('/api/blog/posts/123');  // WRONG!
-await apiClient.post('/api/projects/create', data); // WRONG!
-```
-
-**Microservice Routing:**
-- Form service: `/blog/*`
-- Projects service: `/projects/*`
-- Email service: `/email/*`
-- Users service: `/users/*`
-
-**Why:** API routing is handled by proxy configuration, no `/api/` prefix needed.
-
----
-
-## Mutations
-
-### Basic Mutation Pattern
-
-```typescript
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { myFeatureApi } from '../api/myFeatureApi';
-import { useMuiSnackbar } from '@/hooks/useMuiSnackbar';
-
-export const MyComponent: React.FC = () => {
-    const queryClient = useQueryClient();
-    const { showSuccess, showError } = useMuiSnackbar();
-
-    const updateMutation = useMutation({
-        mutationFn: (payload: UpdatePayload) =>
-            myFeatureApi.updateEntity(blogId, entityId, payload),
-
-        onSuccess: () => {
-            // Invalidate and refetch
-            queryClient.invalidateQueries({
-                queryKey: ['entity', blogId, entityId]
-            });
-            showSuccess('Entity updated successfully');
-        },
-
-        onError: (error) => {
-            showError('Failed to update entity');
-            console.error('Update error:', error);
-        },
-    });
-
-    const handleUpdate = () => {
-        updateMutation.mutate({ name: 'New Name' });
-    };
-
-    return (
-        <Button
-            onClick={handleUpdate}
-            disabled={updateMutation.isPending}
-        >
-            {updateMutation.isPending ? 'Updating...' : 'Update'}
-        </Button>
-    );
-};
-```
-
-### Optimistic Updates
-
-```typescript
-const updateMutation = useMutation({
-    mutationFn: (payload) => myFeatureApi.update(id, payload),
-
-    // Optimistic update
-    onMutate: async (newData) => {
-        // Cancel outgoing refetches
-        await queryClient.cancelQueries({ queryKey: ['entity', id] });
-
-        // Snapshot current value
-        const previousData = queryClient.getQueryData(['entity', id]);
-
-        // Optimistically update
-        queryClient.setQueryData(['entity', id], (old) => ({
-            ...old,
-            ...newData,
-        }));
-
-        // Return rollback function
-        return { previousData };
-    },
-
-    // Rollback on error
-    onError: (err, newData, context) => {
-        queryClient.setQueryData(['entity', id], context.previousData);
-        showError('Update failed');
-    },
-
-    // Refetch after success or error
-    onSettled: () => {
-        queryClient.invalidateQueries({ queryKey: ['entity', id] });
-    },
-});
-```
-
----
-
-## Advanced Query Patterns
-
-### Prefetching
-
-```typescript
-export function usePrefetchEntity() {
-    const queryClient = useQueryClient();
-
-    return (blogId: number, entityId: number) => {
-        return queryClient.prefetchQuery({
-            queryKey: ['entity', blogId, entityId],
-            queryFn: () => myFeatureApi.getEntity(blogId, entityId),
-            staleTime: 5 * 60 * 1000,
-        });
-    };
+function handleCreate() {
+  createUserMutation.mutate({
+    name: 'John Doe',
+    email: 'john@example.com'
+  })
 }
 
-// Usage: Prefetch on hover
-<div onMouseEnter={() => prefetch(blogId, id)}>
-    <Link to={`/entity/${id}`}>View</Link>
-</div>
+function handleUpdate(userId: number) {
+  updateUserMutation.mutate({
+    id: userId,
+    updates: { name: 'Jane Doe' }
+  })
+}
+
+function handleDelete(userId: number) {
+  deleteUserMutation.mutate(userId)
+}
+</script>
+
+<template>
+  <div>
+    <button
+      @click="handleCreate"
+      :disabled="createUserMutation.isPending.value"
+    >
+      {{ createUserMutation.isPending.value ? 'Creating...' : 'Create User' }}
+    </button>
+
+    <p v-if="createUserMutation.isError.value" class="text-red-500">
+      Error: {{ createUserMutation.error.value.message }}
+    </p>
+
+    <p v-if="createUserMutation.isSuccess.value" class="text-green-500">
+      User created successfully!
+    </p>
+  </div>
+</template>
 ```
 
-### Cache Access Without Fetching
+---
+
+## Optimistic Updates
+
+### Update UI Before Server Response
 
 ```typescript
-export function useEntityFromCache(blogId: number, entityId: number) {
-    const queryClient = useQueryClient();
+// composables/useUpdatePost.ts
+import { useMutation, useQueryClient } from '@tanstack/vue-query'
+import { postApi } from '@/api/post'
+import type { Post } from '@/model/Post'
 
-    // Get from cache, don't fetch if missing
-    const directCache = queryClient.getQueryData<MyEntity>(['entity', blogId, entityId]);
+export function useUpdatePost() {
+  const queryClient = useQueryClient()
 
-    if (directCache) return directCache;
+  return useMutation({
+    mutationFn: ({ id, updates }: { id: number; updates: Partial<Post> }) =>
+      postApi.updatePost(id, updates),
 
-    // Try grid cache
-    const gridCache = queryClient.getQueryData<{ rows: MyEntity[] }>(['entities-v2', blogId]);
+    // Before mutation
+    onMutate: async ({ id, updates }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['post', id] })
 
-    return gridCache?.rows.find(row => row.id === entityId);
+      // Snapshot previous value
+      const previousPost = queryClient.getQueryData<Post>(['post', id])
+
+      // Optimistically update cache
+      queryClient.setQueryData<Post>(['post', id], (old) => {
+        if (!old) return old
+        return { ...old, ...updates }
+      })
+
+      // Return context with previous value
+      return { previousPost }
+    },
+
+    // On error, rollback
+    onError: (error, { id }, context) => {
+      if (context?.previousPost) {
+        queryClient.setQueryData(['post', id], context.previousPost)
+      }
+    },
+
+    // Always refetch after error or success
+    onSettled: (data, error, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['post', id] })
+    }
+  })
 }
 ```
 
-### Dependent Queries
+**Usage:**
+```vue
+<script setup lang="ts">
+import { useUpdatePost } from '@/composables/useUpdatePost'
 
-```typescript
-// Fetch user first, then user's settings
-const { data: user } = useSuspenseQuery({
-    queryKey: ['user', userId],
-    queryFn: () => userApi.getUser(userId),
-});
+const updatePost = useUpdatePost()
 
-const { data: settings } = useSuspenseQuery({
-    queryKey: ['user', userId, 'settings'],
-    queryFn: () => settingsApi.getUserSettings(user.id),
-    // Automatically waits for user to load due to Suspense
-});
+function handleUpdate(postId: number) {
+  updatePost.mutate({
+    id: postId,
+    updates: { title: 'New Title' }
+  })
+}
+</script>
+
+<template>
+  <button @click="handleUpdate(1)">
+    Update Post
+  </button>
+</template>
 ```
 
 ---
 
-## API Client Configuration
+## Dependent Queries
 
-### Using apiClient
+### Serial Query Execution
 
-```typescript
-import apiClient from '@/lib/apiClient';
+```vue
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
+import { userApi } from '@/api/user'
+import { projectApi } from '@/api/project'
 
-// apiClient is a configured axios instance
-// Automatically includes:
-// - Base URL configuration
-// - Cookie-based authentication
-// - Error interceptors
-// - Response transformers
-```
-
-**Do NOT create new axios instances** - use apiClient for consistency.
-
----
-
-## Error Handling in Queries
-
-### onError Callback
-
-```typescript
-import { useMuiSnackbar } from '@/hooks/useMuiSnackbar';
-
-const { showError } = useMuiSnackbar();
-
-const { data } = useSuspenseQuery({
-    queryKey: ['entity', id],
-    queryFn: () => myFeatureApi.getEntity(id),
-
-    // Handle errors
-    onError: (error) => {
-        showError('Failed to load entity');
-        console.error('Load error:', error);
-    },
-});
-```
-
-### Error Boundaries
-
-Combine with Error Boundaries for comprehensive error handling:
-
-```typescript
-import { ErrorBoundary } from 'react-error-boundary';
-
-<ErrorBoundary
-    fallback={<ErrorDisplay />}
-    onError={(error) => console.error(error)}
->
-    <SuspenseLoader>
-        <ComponentWithSuspenseQuery />
-    </SuspenseLoader>
-</ErrorBoundary>
-```
-
----
-
-## Complete Examples
-
-### Example 1: Simple Entity Fetch
-
-```typescript
-import React from 'react';
-import { useSuspenseQuery } from '@tanstack/react-query';
-import { Box, Typography } from '@mui/material';
-import { userApi } from '../api/userApi';
-
-interface UserProfileProps {
-    userId: string;
+interface Props {
+  email: string
 }
 
-export const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
-    const { data: user } = useSuspenseQuery({
-        queryKey: ['user', userId],
-        queryFn: () => userApi.getUser(userId),
-        staleTime: 5 * 60 * 1000,
-    });
+const props = defineProps<Props>()
 
-    return (
-        <Box>
-            <Typography variant='h5'>{user.name}</Typography>
-            <Typography>{user.email}</Typography>
-        </Box>
-    );
-};
+// Get the user
+const { data: user, isLoading: isLoadingUser } = useQuery({
+  queryKey: ['user', () => props.email],
+  queryFn: () => userApi.getUserByEmail(props.email)
+})
 
-// Usage with Suspense
-<SuspenseLoader>
-    <UserProfile userId='123' />
-</SuspenseLoader>
+// Compute dependencies
+const userId = computed(() => user.value?.id)
+const isEnabled = computed(() => !!user.value?.id)
+
+// Then get the user's projects (only when user is loaded)
+const { data: projects, isLoading: isLoadingProjects } = useQuery({
+  queryKey: ['projects', userId],
+  queryFn: () => projectApi.getProjectsByUser(userId.value!),
+  enabled: isEnabled // Don't run until user is loaded
+})
+
+const isLoading = computed(() => isLoadingUser.value || isLoadingProjects.value)
+</script>
+
+<template>
+  <div>
+    <div v-if="isLoading">Loading...</div>
+    <div v-else-if="projects">
+      <h2>Projects for {{ user.name }}</h2>
+      <ul>
+        <li v-for="project in projects" :key="project.id">
+          {{ project.name }}
+        </li>
+      </ul>
+    </div>
+  </div>
+</template>
 ```
 
-### Example 2: Cache-First Strategy
+---
+
+## Query Configuration
+
+### Common Options
 
 ```typescript
-import { useSuspenseQuery, useQueryClient } from '@tanstack/react-query';
-import { postApi } from '../api/postApi';
-import type { Post } from '../types';
+useQuery({
+  queryKey: ['posts'],
+  queryFn: () => postApi.getPosts(),
 
-/**
- * Hook with cache-first strategy
- * Checks grid cache before API call
- */
-export function useSuspensePost(blogId: number, postId: number) {
-    const queryClient = useQueryClient();
+  // Caching
+  staleTime: 5 * 60 * 1000,      // 5 minutes (data stays fresh)
+  gcTime: 10 * 60 * 1000,         // 10 minutes (garbage collection)
 
-    return useSuspenseQuery<Post, Error>({
-        queryKey: ['post', blogId, postId],
-        queryFn: async () => {
-            // 1. Check grid cache first
-            const gridCache = queryClient.getQueryData<{ rows: Post[] }>([
-                'posts-v2',
-                blogId,
-                'summary'
-            ]) || queryClient.getQueryData<{ rows: Post[] }>([
-                'posts-v2',
-                blogId,
-                'flat'
-            ]);
+  // Refetching
+  refetchOnMount: true,            // Refetch when component mounts
+  refetchOnWindowFocus: false,     // Don't refetch on window focus
+  refetchOnReconnect: true,        // Refetch when internet reconnects
+  refetchInterval: false,          // No polling by default
 
-            if (gridCache?.rows) {
-                const cached = gridCache.rows.find(row => row.S_ID === postId);
-                if (cached) {
-                    return cached;  // Reuse grid data
-                }
-            }
+  // Retry
+  retry: 3,                        // Retry failed requests 3 times
+  retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
 
-            // 2. Not in cache, fetch directly
-            return postApi.getPost(blogId, postId);
-        },
-        staleTime: 5 * 60 * 1000,
-        gcTime: 10 * 60 * 1000,
-        refetchOnWindowFocus: false,
-    });
+  // Enabled/disabled
+  enabled: computed(() => someCondition.value),
+
+  // Callbacks
+  onSuccess: (data) => {
+    console.log('Data loaded:', data)
+  },
+  onError: (error) => {
+    console.error('Error loading data:', error)
+  }
+})
+```
+
+---
+
+## Composable Pattern for Queries
+
+### Reusable Query Composables
+
+```typescript
+// composables/useUserQuery.ts
+import { computed, type Ref } from 'vue'
+import { useQuery, type UseQueryOptions } from '@tanstack/vue-query'
+import { userApi } from '@/api/user'
+import type { User } from '@/model/User'
+
+export function useUserQuery(
+  userId: Ref<number> | number,
+  options?: Omit<UseQueryOptions<User>, 'queryKey' | 'queryFn'>
+) {
+  const idRef = computed(() =>
+    typeof userId === 'number' ? userId : userId.value
+  )
+
+  return useQuery({
+    queryKey: ['user', idRef],
+    queryFn: () => userApi.getUser(idRef.value),
+    ...options
+  })
 }
 ```
 
-**Benefits:**
-- Avoids duplicate API calls
-- Instant data if already loaded
-- Falls back to API if not cached
+**Usage:**
+```vue
+<script setup lang="ts">
+import { useUserQuery } from '@/composables/useUserQuery'
 
-### Example 3: Parallel Fetching
+interface Props {
+  userId: number
+}
 
-```typescript
-import { useSuspenseQueries } from '@tanstack/react-query';
+const props = defineProps<Props>()
 
-export const Dashboard: React.FC = () => {
-    const [statsQuery, projectsQuery, notificationsQuery] = useSuspenseQueries({
-        queries: [
-            {
-                queryKey: ['stats'],
-                queryFn: () => statsApi.getStats(),
-            },
-            {
-                queryKey: ['projects', 'active'],
-                queryFn: () => projectsApi.getActiveProjects(),
-            },
-            {
-                queryKey: ['notifications', 'unread'],
-                queryFn: () => notificationsApi.getUnread(),
-            },
-        ],
-    });
+const { data: user, isLoading, error } = useUserQuery(() => props.userId)
+</script>
 
-    return (
-        <Box>
-            <StatsCard data={statsQuery.data} />
-            <ProjectsList projects={projectsQuery.data} />
-            <Notifications items={notificationsQuery.data} />
-        </Box>
-    );
-};
-```
-
----
-
-## Mutations with Cache Invalidation
-
-### Update Mutation
-
-```typescript
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { postApi } from '../api/postApi';
-import { useMuiSnackbar } from '@/hooks/useMuiSnackbar';
-
-export const useUpdatePost = () => {
-    const queryClient = useQueryClient();
-    const { showSuccess, showError } = useMuiSnackbar();
-
-    return useMutation({
-        mutationFn: ({ blogId, postId, data }: UpdateParams) =>
-            postApi.updatePost(blogId, postId, data),
-
-        onSuccess: (data, variables) => {
-            // Invalidate specific post
-            queryClient.invalidateQueries({
-                queryKey: ['post', variables.blogId, variables.postId]
-            });
-
-            // Invalidate list to refresh grid
-            queryClient.invalidateQueries({
-                queryKey: ['posts-v2', variables.blogId]
-            });
-
-            showSuccess('Post updated');
-        },
-
-        onError: (error) => {
-            showError('Failed to update post');
-            console.error('Update error:', error);
-        },
-    });
-};
-
-// Usage
-const updatePost = useUpdatePost();
-
-const handleSave = () => {
-    updatePost.mutate({
-        blogId: 123,
-        postId: 456,
-        data: { responses: { '101': 'value' } }
-    });
-};
-```
-
-### Delete Mutation
-
-```typescript
-export const useDeletePost = () => {
-    const queryClient = useQueryClient();
-    const { showSuccess, showError } = useMuiSnackbar();
-
-    return useMutation({
-        mutationFn: ({ blogId, postId }: DeleteParams) =>
-            postApi.deletePost(blogId, postId),
-
-        onSuccess: (data, variables) => {
-            // Remove from cache manually (optimistic)
-            queryClient.setQueryData<{ rows: Post[] }>(
-                ['posts-v2', variables.blogId],
-                (old) => ({
-                    ...old,
-                    rows: old?.rows.filter(row => row.S_ID !== variables.postId) || []
-                })
-            );
-
-            showSuccess('Post deleted');
-        },
-
-        onError: (error, variables) => {
-            // Rollback - refetch to get accurate state
-            queryClient.invalidateQueries({
-                queryKey: ['posts-v2', variables.blogId]
-            });
-            showError('Failed to delete post');
-        },
-    });
-};
-```
-
----
-
-## Query Configuration Best Practices
-
-### Default Configuration
-
-```typescript
-// In QueryClientProvider setup
-const queryClient = new QueryClient({
-    defaultOptions: {
-        queries: {
-            staleTime: 1000 * 60 * 5,        // 5 minutes
-            gcTime: 1000 * 60 * 10,           // 10 minutes (was cacheTime)
-            refetchOnWindowFocus: false,       // Don't refetch on focus
-            refetchOnMount: false,             // Don't refetch on mount if fresh
-            retry: 1,                          // Retry failed queries once
-        },
-    },
-});
-```
-
-### Per-Query Overrides
-
-```typescript
-// Frequently changing data - shorter staleTime
-useSuspenseQuery({
-    queryKey: ['notifications', 'unread'],
-    queryFn: () => notificationApi.getUnread(),
-    staleTime: 30 * 1000,  // 30 seconds
-});
-
-// Rarely changing data - longer staleTime
-useSuspenseQuery({
-    queryKey: ['form', blogId, 'structure'],
-    queryFn: () => formApi.getStructure(blogId),
-    staleTime: 30 * 60 * 1000,  // 30 minutes
-});
+<template>
+  <div v-if="isLoading">Loading...</div>
+  <div v-else-if="error">Error loading user</div>
+  <div v-else>
+    <h2>{{ user.name }}</h2>
+    <p>{{ user.email }}</p>
+  </div>
+</template>
 ```
 
 ---
 
 ## Summary
 
-**Modern Data Fetching Recipe:**
-
-1. **Create API Service**: `features/X/api/XApi.ts` using apiClient
-2. **Use useSuspenseQuery**: In components wrapped by SuspenseLoader
-3. **Cache-First**: Check grid cache before API call
-4. **Query Keys**: Consistent naming ['entity', id]
-5. **Route Format**: `/blog/route` NOT `/api/blog/route`
-6. **Mutations**: invalidateQueries after success
-7. **Error Handling**: onError + useMuiSnackbar
-8. **Type Safety**: Type all parameters and returns
+**Data Fetching Best Practices:**
+1. Use `useQuery` for all GET operations
+2. Use `useMutation` for CREATE, UPDATE, DELETE
+3. Create API service layer per feature
+4. Transform DTOs with mappers
+5. Use query keys with reactive dependencies
+6. Cache-first strategy where possible
+7. Invalidate queries after mutations
+8. Composables for reusable queries
+9. Use function syntax for all functions
+10. Handle loading and error states in template
 
 **See Also:**
-- [component-patterns.md](component-patterns.md) - Suspense integration
-- [loading-and-error-states.md](loading-and-error-states.md) - SuspenseLoader usage
-- [complete-examples.md](complete-examples.md) - Full working examples
+- [component-patterns.md](component-patterns.md) - Component structure
+- [loading-and-error-states.md](loading-and-error-states.md) - Error handling patterns
+- [common-patterns.md](common-patterns.md) - Mutation patterns

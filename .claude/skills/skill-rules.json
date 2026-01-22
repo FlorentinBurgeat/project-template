@@ -1,0 +1,246 @@
+{
+  "version": "1.0",
+  "description": "Skill activation triggers for Claude Code. Controls when skills automatically suggest or block actions.",
+  "skills": {
+      "skill-developer": {
+          "type": "domain",
+          "enforcement": "suggest",
+          "priority": "high",
+          "description": "Meta-skill for creating and managing Claude Code skills",
+          "promptTriggers": {
+              "keywords": [
+                  "skill system",
+                  "create skill",
+                  "add skill",
+                  "skill triggers",
+                  "skill rules",
+                  "hook system",
+                  "skill development",
+                  "skill-rules.json"
+              ],
+              "intentPatterns": [
+                  "(how do|how does|explain).*?skill",
+                  "(create|add|modify|build).*?skill",
+                  "skill.*?(work|trigger|activate|system)"
+              ]
+          }
+      },
+      "kotlin-spring-boot-backend": {
+          "type": "domain",
+          "enforcement": "suggest",
+          "priority": "high",
+          "description": "Kotlin/Spring Boot backend development with DDD patterns, Exposed ORM, and feature-based architecture",
+          "promptTriggers": {
+              "keywords": [
+                  "backend",
+                  "backend development",
+                  "Kotlin",
+                  "Spring Boot",
+                  "controller",
+                  "service",
+                  "repository",
+                  "route",
+                  "routing",
+                  "API",
+                  "endpoint",
+                  "RequestMapping",
+                  "validation",
+                  "database access",
+                  "dependency injection",
+                  "configuration",
+                  "REST API",
+                  "HTTP",
+                  "Exposed ORM",
+                  "DDD",
+                  "domain driven design",
+                  "aggregate",
+                  "value object",
+                  "feature",
+                  "Flyway",
+                  "migration",
+                  "JWT",
+                  "authentication"
+              ],
+              "intentPatterns": [
+                  "(create|add|implement|build).*?(route|endpoint|API|controller|service|repository|feature)",
+                  "(fix|handle|debug).*?(error|exception|backend)",
+                  "(add|implement).*?(validation|error.*?handling|JWT|authentication)",
+                  "(organize|structure|refactor).*?(backend|service|API|Kotlin|feature)",
+                  "(how to|best practice).*?(backend|route|controller|service|Kotlin|DDD|aggregate)",
+                  "(create|add).*?(aggregate|value object|domain model)"
+              ]
+          },
+          "fileTriggers": {
+              "pathPatterns": [
+                  "back/src/**/*.kt",
+                  "backend/src/**/*.kt",
+                  "src/main/kotlin/**/*.kt",
+                  "**/features/**/*.kt"
+              ],
+              "pathExclusions": [
+                  "**/*Test.kt",
+                  "**/*Tests.kt",
+                  "**/test/**/*.kt"
+              ],
+              "contentPatterns": [
+                  "@RestController",
+                  "@Service",
+                  "@Repository",
+                  "@RequestMapping",
+                  "@GetMapping",
+                  "@PostMapping",
+                  "@PutMapping",
+                  "@DeleteMapping",
+                  "class.*Controller",
+                  "class.*Service",
+                  "class.*Repository",
+                  "object.*:.*Table",
+                  "transaction\\s*\\{"
+              ]
+          }
+      },
+      "frontend-dev-guidelines": {
+          "type": "domain",
+          "enforcement": "suggest",
+          "priority": "high",
+          "description": "Vue 3 frontend best practices with TypeScript and Tailwind CSS",
+          "promptTriggers": {
+              "keywords": [
+                  "component",
+                  "Vue component",
+                  "UI",
+                  "interface",
+                  "page",
+                  "modal",
+                  "dialog",
+                  "form",
+                  "Vue",
+                  "Vue 3",
+                  "Tailwind",
+                  "styling",
+                  "frontend",
+                  "ShadCN",
+                  "composition API"
+              ],
+              "intentPatterns": [
+                  "(create|add|make|build|update|modify|edit).*?(component|UI|page|modal|dialog|form)",
+                  "(how to|best practice).*?(component|Vue|composition API)",
+                  "(style|design|layout).*?(component|UI|Tailwind)"
+              ]
+          },
+          "fileTriggers": {
+              "pathPatterns": [
+                  "frontend/src/**/*.vue",
+                  "frontend/src/**/*.ts",
+                  "client/src/**/*.vue",
+                  "client/src/**/*.ts",
+                  "src/**/*.vue"
+              ],
+              "pathExclusions": [
+                  "**/*.test.ts",
+                  "**/*.spec.ts",
+                  "**/vite.config.ts",
+                  "**/tsconfig.json"
+              ],
+              "contentPatterns": [
+                  "<template>",
+                  "<script setup",
+                  "defineProps",
+                  "defineEmits",
+                  "import.*from.*shadcn",
+                  "class=.*tw-",
+                  "@apply"
+              ]
+          }
+      },
+      "route-tester": {
+          "type": "domain",
+          "enforcement": "suggest",
+          "priority": "high",
+          "description": "Testing authenticated API routes with JWT cookie-based auth",
+          "promptTriggers": {
+              "keywords": [
+                  "test route",
+                  "test endpoint",
+                  "test API",
+                  "route testing",
+                  "API testing",
+                  "authenticated route",
+                  "JWT testing",
+                  "cookie auth",
+                  "test with auth"
+              ],
+              "intentPatterns": [
+                  "(test|debug|verify).*?(route|endpoint|API)",
+                  "(how to|how do I).*?test.*?(route|endpoint|API)",
+                  "test.*?(authenticated|auth|JWT|cookie)"
+              ]
+          },
+          "fileTriggers": {
+              "pathPatterns": [
+                  "**/routes/**/*.ts",
+                  "**/test-*.js",
+                  "**/test-*.ts"
+              ],
+              "contentPatterns": [
+                  "router\\.(get|post|put|delete|patch)",
+                  "app\\.(get|post|put|delete|patch)"
+              ]
+          }
+      },
+      "error-tracking": {
+          "type": "domain",
+          "enforcement": "suggest",
+          "priority": "high",
+          "description": "Sentry error tracking and performance monitoring patterns",
+          "promptTriggers": {
+              "keywords": [
+                  "error handling",
+                  "exception",
+                  "sentry",
+                  "error tracking",
+                  "captureException",
+                  "monitoring",
+                  "performance tracking"
+              ],
+              "intentPatterns": [
+                  "(add|create|implement|setup).*?(error handling|sentry|error tracking)",
+                  "(fix|handle|catch).*?(error|exception)",
+                  "(how to|best practice).*?(error|sentry|monitoring)"
+              ]
+          },
+          "fileTriggers": {
+              "pathPatterns": [
+                  "**/instrument.ts",
+                  "**/sentry*.ts",
+                  "**/*Controller.ts",
+                  "**/*Service.ts"
+              ],
+              "contentPatterns": [
+                  "@sentry",
+                  "Sentry\\.",
+                  "captureException",
+                  "captureMessage"
+              ]
+          }
+      }
+  },
+  "notes": {
+      "enforcement_types": {
+          "suggest": "Skill suggestion appears but doesn't block execution",
+          "block": "Requires skill to be used before proceeding (guardrail)",
+          "warn": "Shows warning but allows proceeding"
+      },
+      "priority_levels": {
+          "critical": "Highest - Always trigger when matched",
+          "high": "Important - Trigger for most matches",
+          "medium": "Moderate - Trigger for clear matches",
+          "low": "Optional - Trigger only for explicit matches"
+      },
+      "customization": {
+          "pathPatterns": "Adjust to match your project structure (blog-api, auth-service, etc.)",
+          "keywords": "Add domain-specific terms relevant to your project",
+          "intentPatterns": "Use regex for flexible user intent matching"
+      }
+  }
+}

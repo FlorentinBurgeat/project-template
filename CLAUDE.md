@@ -7,7 +7,7 @@
 ### Purpose
 Eliminate initial project setup time by providing a proven, configured, and functional structure from day one. Developers can clone this template and immediately focus on business features.
 
-> **Note**: This project contains additional CLAUDE.md files in `/backend` and `/frontend` directories with architecture-specific details.
+> **Note**: This project contains additional CLAUDE.md files in `/back` and `/front` directories with architecture-specific details.
 
 ---
 

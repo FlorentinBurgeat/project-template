@@ -26,85 +26,168 @@ Automatically activates when working on:
 
 ## Quick Start
 
-### New API Endpoint Checklist
-
-- [ ] **Controller Method**: Clean definition with proper annotations
-- [ ] **Service Layer**: Business logic with dependency injection
-- [ ] **Repository**: Database access if needed (Exposed queries)
-- [ ] **Validation**: Kotlin data classes with validation constraints
-- [ ] **Error Handling**: Custom exceptions and error responses
-- [ ] **Tests**: Unit + integration tests
-- [ ] **Docs**: OpenAPI/Swagger documentation
-
 ### New Backend Feature Checklist
 
-- [ ] **Controller**: `@RestController` with clear method signatures
-- [ ] **Service**: `@Service` with constructor injection
-- [ ] **Repository**: `@Repository` with Exposed ORM queries
-- [ ] **Validation**: Request DTOs with validation annotations
-- [ ] **Exception Handling**: Custom exceptions and global error handler
-- [ ] **Security**: JWT/OAuth configuration if needed
-- [ ] **Tests**: Unit tests for service layer, integration tests for endpoints
-- [ ] **Docs**: Document API contract
+- [ ] **Package**: Create feature package under `/features/{feature-name}`
+- [ ] **Controller**: REST controller with `@RestController` and `@RequestMapping`
+- [ ] **Service**: Business logic with `@Service` and constructor injection
+- [ ] **Repository**: Database access with Exposed ORM
+- [ ] **Models**: Data classes for entities and DTOs
+- [ ] **Mapper**: Transform between DTOs and entities
+- [ ] **Migration**: Flyway SQL script if schema changes needed
+- [ ] **Tests**: Unit + integration tests
+- [ ] **Config**: Environment variables for configuration
+
+### New Feature Package Structures
+
+**Simple Feature** (start here - no domain complexity):
+```
+/features/{feature-name}/
+├── controllers/        # REST API endpoints
+├── services/           # Application services (orchestration)
+├── models/             # Entities and DTOs
+├── mappers/            # DTO ↔ Entity transformations
+├── repositories/       # Database access (Exposed)
+└── dto/                # API contracts (optional, can use models/)
+```
+
+**Complex Feature** (add domain layer when needed):
+```
+/features/{feature-name}/
+├── controllers/        # REST API endpoints
+├── services/           # Application services (orchestration)
+├── domain/             # Business logic & rules
+│   ├── aggregates/     # Aggregate roots (Order, ShoppingCart)
+│   ├── entities/       # Domain entities (OrderItem)
+│   └── valueobjects/   # Immutable values (Money, Email, Address)
+├── repositories/       # Database access (Exposed)
+└── dto/                # API contracts
+
+**Example 1: Simple Feature (Authentication)**
+```
+/features/authentication/
+├── controllers/        # AuthController.kt
+├── services/           # AuthService.kt
+├── models/             # User.kt, LoginRequest.kt, TokenResponse.kt
+├── mappers/            # UserMapper.kt
+└── repositories/       # UserRepository.kt
+```
+
+**Example 2: Complex Feature (Order Management)**
+```
+/features/order-management/
+├── controllers/        # OrderController.kt
+├── services/           # OrderService.kt (orchestration)
+├── domain/
+│   ├── aggregates/     # Order.kt (aggregate root with business rules)
+│   ├── entities/       # OrderItem.kt
+│   └── valueobjects/   # Money.kt, Address.kt, OrderStatus.kt
+├── repositories/       # OrderRepository.kt (saves whole aggregate)
+└── dto/                # CreateOrderRequest.kt, OrderResponse.kt
+```
 
 ---
 
 ## Architecture Overview
 
-### Layered Architecture
+### Hybrid Feature-Based + DDD Architecture
+
+The backend follows a **feature-based architecture** with **selective DDD tactical patterns** when complexity warrants it.
+
+**Core Principles:**
+- **Isolation**: Each feature is independent and can be added/removed without affecting others
+- **Cohesion**: All elements related to a feature stay together
+- **Minimal coupling**: Features should have minimal dependencies on each other
+- **Selective complexity**: Start simple, add domain layer only when business logic requires it
+
+### Layered Architecture (Within Each Feature)
 
 ```
 HTTP Request
     ↓
-Spring DispatcherServlet
+Controller (request handling)
     ↓
-Controllers (request handling + validation)
+Service (application orchestration)
     ↓
-Services (business logic)
+Domain (entities, aggregates, value objects) ← Optional, add when needed
     ↓
-Repositories (data access with Exposed)
+Repository (data access)
     ↓
-PostgreSQL Database
+Database (Exposed ORM)
 ```
 
-**Key Principle:** Each layer has ONE responsibility. Controllers don't contain business logic. Services don't know about HTTP. Repositories only handle data access.
+**Key Principle:** Each layer has ONE responsibility. Controllers handle HTTP. Services orchestrate. Domain models contain business logic. Repositories handle data access.
+
+### When to Use Domain Layer
+
+**Start without domain folder** (simple features):
+- Basic CRUD operations
+- Simple validation rules
+- Single entity features
+- No complex business rules
+
+**Add domain folder** when you have:
+- Multiple related entities needing consistency (Aggregates)
+- Complex business invariants
+- Rich behavior in models
+- Transaction boundaries across entities
+- Immutable value objects (Email, Money, Address)
+
+See [architecture-overview.md](architecture-overview.md) for complete details.
 
 ---
 
 ## Directory Structure
 
+**Hybrid Feature-Based + DDD** - Each business feature is self-contained. Add domain layer selectively:
+
 ```
-backend/src/
+back/src/
 ├── main/
 │   ├── kotlin/
-│   │   └── com/yourapp/
-│   │       ├── config/              # Spring configuration, beans
-│   │       ├── controller/          # @RestController classes
-│   │       ├── service/             # @Service classes
-│   │       ├── repository/          # @Repository classes + Exposed models
-│   │       ├── dto/                 # Request/Response DTOs
-│   │       ├── entity/              # Exposed table definitions
-│   │       ├── exception/           # Custom exceptions
-│   │       ├── security/            # JWT, authentication config
-│   │       ├── filter/              # Request/response filters
-│   │       └── Application.kt       # Main Spring Boot app
+│   │   ├── features/
+│   │   │   ├── authentication/          # Simple feature (no domain layer)
+│   │   │   │   ├── controllers/         # AuthController.kt
+│   │   │   │   ├── services/            # AuthService.kt
+│   │   │   │   ├── models/              # User.kt, UserDTO.kt
+│   │   │   │   ├── mappers/             # UserMapper.kt
+│   │   │   │   └── repositories/        # UserRepository.kt
+│   │   │   │
+│   │   │   └── order-management/        # Complex feature (with domain layer)
+│   │   │       ├── controllers/         # OrderController.kt
+│   │   │       ├── services/            # OrderService.kt (orchestration)
+│   │   │       ├── domain/              # Business logic & rules
+│   │   │       │   ├── aggregates/      # Order.kt (aggregate root)
+│   │   │       │   ├── entities/        # OrderItem.kt
+│   │   │       │   └── valueobjects/    # Money.kt, Address.kt
+│   │   │       ├── repositories/        # OrderRepository.kt
+│   │   │       └── dto/                 # API contracts
+│   │   │
+│   │   ├── config/                      # Application configuration
+│   │   ├── security/                    # JWT, Spring Security config
+│   │   └── Application.kt               # Main Spring Boot app
 │   └── resources/
-│       ├── application.yml          # Spring configuration
-│       └── db/migration/            # Flyway migration files
-└── test/
-    └── kotlin/
-        └── com/yourapp/
-            ├── controller/          # Controller tests
-            └── service/             # Service tests
+│       ├── application.yml              # Spring configuration
+│       └── db/migration/                # Flyway migration files
+└── test/kotlin/features/
+    ├── authentication/                  # Feature-specific tests
+    │   ├── controllers/
+    │   └── services/
+    └── order-management/
+        ├── controllers/
+        ├── services/
+        └── domain/
 ```
 
 **Naming Conventions:**
-- Controllers: `PascalCase + Controller` - `UserController.kt`
-- Services: `PascalCase + Service` - `UserService.kt`
-- Repositories: `PascalCase + Repository` - `UserRepository.kt`
-- DTOs: `PascalCase + Dto` - `CreateUserDto.kt`
-- Entities/Tables: `PascalCase` - `Users.kt` (Exposed table)
-- Exceptions: `PascalCase + Exception` - `UserNotFoundException.kt`
+- Controllers: `PascalCase` - `AuthController.kt`, `OrderController.kt`
+- Services: `PascalCase` - `AuthService.kt`, `OrderService.kt`
+- Repositories: `PascalCase` - `UserRepository.kt`, `OrderRepository.kt`
+- Models: `PascalCase` - `User.kt`, `UserDTO.kt`
+- Aggregates: `PascalCase` - `Order.kt`, `ShoppingCart.kt`
+- Value Objects: `PascalCase` - `Money.kt`, `Email.kt`, `Address.kt`
+- Mappers: `PascalCase` - `UserMapper.kt`
+- Tables (Exposed): `PascalCase` plural - `Users.kt`, `Orders.kt`
 
 ---
 
@@ -334,6 +417,118 @@ class JwtFilter(private val jwtProvider: JwtProvider) : OncePerRequestFilter() {
 ```
 
 See [reference.md](reference.md) for complete JWT patterns.
+
+### 7. DDD Tactical Patterns (Optional - Use When Needed)
+
+#### Aggregates - Transaction Boundaries
+
+Use Aggregates when you have **multiple related entities that must stay consistent**:
+
+```kotlin
+// Order aggregate root - enforces business rules
+class Order(
+    val id: UUID,
+    private val items: MutableList<OrderItem> = mutableListOf(),
+    var status: OrderStatus = OrderStatus.DRAFT
+) {
+    // Business logic encapsulated in aggregate
+    fun addItem(product: Product, quantity: Int) {
+        if (status != OrderStatus.DRAFT) {
+            throw IllegalStateException("Cannot modify non-draft order")
+        }
+        items.add(OrderItem(UUID.randomUUID(), product.id, quantity, product.price))
+    }
+
+    fun calculateTotal(): Money {
+        return Money(items.sumOf { it.price.amount * it.quantity })
+    }
+
+    fun submit() {
+        if (items.isEmpty()) {
+            throw IllegalStateException("Cannot submit empty order")
+        }
+        status = OrderStatus.SUBMITTED
+    }
+}
+
+// Entity within the aggregate
+data class OrderItem(
+    val id: UUID,
+    val productId: UUID,
+    val quantity: Int,
+    val price: Money
+)
+```
+
+**When to use:**
+- Multiple entities needing consistency (Order + OrderItems)
+- Complex business invariants across entities
+- Transaction boundaries (save aggregate as a whole)
+
+#### Value Objects - Immutable Values
+
+Use Value Objects for **concepts defined by their attributes, not identity**:
+
+```kotlin
+// Money value object - immutable, no identity
+data class Money(
+    val amount: BigDecimal,
+    val currency: String = "USD"
+) {
+    init {
+        require(amount >= BigDecimal.ZERO) { "Amount cannot be negative" }
+    }
+
+    operator fun plus(other: Money): Money {
+        require(currency == other.currency) { "Currency mismatch" }
+        return Money(amount + other.amount, currency)
+    }
+}
+
+// Email value object - with validation
+data class Email(val value: String) {
+    init {
+        require(value.matches(Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$"))) {
+            "Invalid email format"
+        }
+    }
+}
+
+// Address value object
+data class Address(
+    val street: String,
+    val city: String,
+    val zipCode: String,
+    val country: String
+)
+```
+
+**When to use:**
+- Immutable values (Money, Email, Address)
+- No identity needed (two $10 bills are the same)
+- Encapsulate validation logic
+- Make domain concepts explicit
+
+#### Simple Entities - When Domain Layer Not Needed
+
+For simple features, keep it straightforward:
+
+```kotlin
+// Simple entity in models/ folder (no domain folder needed)
+data class User(
+    val id: UUID = UUID.randomUUID(),
+    val email: String,
+    val name: String,
+    val passwordHash: String,
+    val createdAt: Instant = Instant.now()
+)
+```
+
+**Decision Guide:**
+- **Simple Entity**: CRUD operations, basic validation → Keep in `models/`
+- **Rich Entity**: Complex behavior, business rules → Move to `domain/entities/`
+- **Aggregate**: Multiple entities, consistency needed → Use `domain/aggregates/`
+- **Value Object**: Immutable, no identity → Use `domain/valueobjects/`
 
 ---
 

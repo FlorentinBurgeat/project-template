@@ -25,11 +25,11 @@
               ]
           }
       },
-      "backend-dev-guidelines": {
+      "kotlin-spring-boot-backend": {
           "type": "domain",
           "enforcement": "suggest",
           "priority": "high",
-          "description": "Backend development patterns for Kotlin/Spring Boot",
+          "description": "Kotlin/Spring Boot backend development with DDD patterns, Exposed ORM, and feature-based architecture",
           "promptTriggers": {
               "keywords": [
                   "backend",
@@ -50,39 +50,52 @@
                   "configuration",
                   "REST API",
                   "HTTP",
-                  "Exposed ORM"
+                  "Exposed ORM",
+                  "DDD",
+                  "domain driven design",
+                  "aggregate",
+                  "value object",
+                  "feature",
+                  "Flyway",
+                  "migration",
+                  "JWT",
+                  "authentication"
               ],
               "intentPatterns": [
-                  "(create|add|implement|build).*?(route|endpoint|API|controller|service|repository)",
+                  "(create|add|implement|build).*?(route|endpoint|API|controller|service|repository|feature)",
                   "(fix|handle|debug).*?(error|exception|backend)",
-                  "(add|implement).*?(validation|error.*?handling)",
-                  "(organize|structure|refactor).*?(backend|service|API|Kotlin)",
-                  "(how to|best practice).*?(backend|route|controller|service|Kotlin)"
+                  "(add|implement).*?(validation|error.*?handling|JWT|authentication)",
+                  "(organize|structure|refactor).*?(backend|service|API|Kotlin|feature)",
+                  "(how to|best practice).*?(backend|route|controller|service|Kotlin|DDD|aggregate)",
+                  "(create|add).*?(aggregate|value object|domain model)"
               ]
           },
           "fileTriggers": {
               "pathPatterns": [
+                  "back/src/**/*.kt",
                   "backend/src/**/*.kt",
-                  "backend/**/*.kt",
-                  "api/**/*.kt",
-                  "server/**/*.kt",
-                  "services/**/*.kt"
+                  "src/main/kotlin/**/*.kt",
+                  "**/features/**/*.kt"
               ],
               "pathExclusions": [
-                  "**/*.test.kt",
-                  "**/*.spec.kt"
+                  "**/*Test.kt",
+                  "**/*Tests.kt",
+                  "**/test/**/*.kt"
               ],
               "contentPatterns": [
+                  "@RestController",
+                  "@Service",
+                  "@Repository",
                   "@RequestMapping",
                   "@GetMapping",
                   "@PostMapping",
                   "@PutMapping",
                   "@DeleteMapping",
-                  "@RestController",
-                  "@Service",
-                  "@Repository",
                   "class.*Controller",
-                  "class.*Service"
+                  "class.*Service",
+                  "class.*Repository",
+                  "object.*:.*Table",
+                  "transaction\\s*\\{"
               ]
           }
       },

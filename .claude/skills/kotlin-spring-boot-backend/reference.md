@@ -1,10 +1,19 @@
 # Kotlin/Spring Boot Backend - Reference Guide
 
+**CRITICAL RULES:**
+- **ALWAYS use UUID for primary keys** - Never Long/BIGSERIAL
+- **ALWAYS use Instant (UTC) for timestamps** - Never LocalDateTime
+- **Use `timestamp()` in Exposed** - Maps to `TIMESTAMPTZ` in PostgreSQL
+
+---
+
 ## Controllers
 
 ### Basic REST Controller
 
 ```kotlin
+import java.util.UUID
+
 @RestController
 @RequestMapping("/api/users")
 @Validated
@@ -20,14 +29,14 @@ class UserController(
     }
 
     @GetMapping("/{id}")
-    fun getById(@PathVariable id: Long): ResponseEntity<UserResponse> {
+    fun getById(@PathVariable id: UUID): ResponseEntity<UserResponse> {
         val user = userService.getById(id)
         return ResponseEntity.ok(user.toResponse())
     }
 
     @PutMapping("/{id}")
     fun update(
-        @PathVariable id: Long,
+        @PathVariable id: UUID,
         @Valid @RequestBody dto: UpdateUserDto
     ): ResponseEntity<UserResponse> {
         val user = userService.update(id, dto)
@@ -35,7 +44,7 @@ class UserController(
     }
 
     @DeleteMapping("/{id}")
-    fun delete(@PathVariable id: Long): ResponseEntity<Unit> {
+    fun delete(@PathVariable id: UUID): ResponseEntity<Unit> {
         userService.delete(id)
         return ResponseEntity.noContent().build()
     }
@@ -71,16 +80,19 @@ data class UpdateUserDto(
 ### Response DTOs
 
 ```kotlin
+import java.time.Instant
+import java.util.UUID
+
 data class UserResponse(
-    val id: Long,
+    val id: UUID,
     val email: String,
     val name: String,
-    val createdAt: LocalDateTime
+    val createdAt: Instant
 )
 
 data class ErrorResponse(
     val message: String,
-    val timestamp: LocalDateTime = LocalDateTime.now(),
+    val timestamp: Instant = Instant.now(),
     val details: Map<String, String>? = null
 )
 ```
@@ -88,6 +100,9 @@ data class ErrorResponse(
 ### Conversion Extension Functions
 
 ```kotlin
+import java.time.Instant
+import java.util.UUID
+
 fun User.toResponse() = UserResponse(
     id = id,
     email = email,
@@ -96,11 +111,11 @@ fun User.toResponse() = UserResponse(
 )
 
 fun CreateUserDto.toEntity() = User(
-    id = 0L,  // Database will assign
+    id = UUID.randomUUID(),
     email = email,
     name = name,
     passwordHash = hashPassword(password),
-    createdAt = LocalDateTime.now()
+    createdAt = Instant.now()
 )
 ```
 
@@ -111,6 +126,9 @@ fun CreateUserDto.toEntity() = User(
 ### Basic Service Pattern
 
 ```kotlin
+import java.time.Instant
+import java.util.UUID
+
 @Service
 class UserService(
     private val userRepository: UserRepository,
@@ -122,11 +140,12 @@ class UserService(
         validateEmailUnique(dto.email)
 
         val user = User(
-            id = 0L,
+            id = UUID.randomUUID(),
             email = dto.email,
             name = dto.name,
             passwordHash = passwordEncoder.encode(dto.password),
-            createdAt = LocalDateTime.now()
+            createdAt = Instant.now(),
+            updatedAt = Instant.now()
         )
 
         val savedUser = userRepository.save(user)
@@ -135,23 +154,24 @@ class UserService(
         return savedUser
     }
 
-    fun getById(id: Long): User {
+    fun getById(id: UUID): User {
         return userRepository.findById(id)
             ?: throw UserNotFoundException("User with ID $id not found")
     }
 
-    fun update(id: Long, dto: UpdateUserDto): User {
+    fun update(id: UUID, dto: UpdateUserDto): User {
         val user = getById(id)
 
         val updated = user.copy(
             email = dto.email ?: user.email,
-            name = dto.name ?: user.name
+            name = dto.name ?: user.name,
+            updatedAt = Instant.now()
         )
 
         return userRepository.save(updated)
     }
 
-    fun delete(id: Long) {
+    fun delete(id: UUID) {
         userRepository.deleteById(id)
     }
 
@@ -166,12 +186,15 @@ class UserService(
 ### Transaction Management
 
 ```kotlin
+import java.math.BigDecimal
+import java.util.UUID
+
 @Service
 class TransferService(
     private val accountRepository: AccountRepository
 ) {
     @Transactional
-    fun transferMoney(fromId: Long, toId: Long, amount: BigDecimal) {
+    fun transferMoney(fromId: UUID, toId: UUID, amount: BigDecimal) {
         val from = accountRepository.findById(fromId)
             ?: throw AccountNotFoundException("From account not found")
         val to = accountRepository.findById(toId)
@@ -193,13 +216,16 @@ class TransferService(
 ### Async Operations
 
 ```kotlin
+import java.util.UUID
+
 @Service
 class NotificationService(
+    private val userRepository: UserRepository,
     private val emailService: EmailService,
     private val smsService: SmsService
 ) {
     @Async
-    fun sendNotifications(userId: Long) {
+    fun sendNotifications(userId: UUID) {
         val user = userRepository.findById(userId) ?: return
 
         emailService.send(user.email, "Welcome!")
@@ -212,23 +238,31 @@ class NotificationService(
 
 ## Repositories with Exposed ORM
 
+**CRITICAL RULES FOR EXPOSED:**
+- Use `uuid("column_name")` for UUID columns
+- Use `timestamp("column_name")` for Instant (UTC timestamps)
+- NEVER use `long()` for IDs or `datetime()` for timestamps
+
 ### Table Definition
 
 ```kotlin
+import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.sql.javatime.timestamp
+
 object Users : Table("users") {
-    val id = long("id").autoIncrement()
+    val id = uuid("id")
     val email = varchar("email", 255).uniqueIndex()
     val name = varchar("name", 255)
     val passwordHash = varchar("password_hash", 255)
-    val createdAt = datetime("created_at").default(LocalDateTime.now())
-    val updatedAt = datetime("updated_at").default(LocalDateTime.now())
+    val createdAt = timestamp("created_at")
+    val updatedAt = timestamp("updated_at")
     val isActive = bool("is_active").default(true)
 
     override val primaryKey = PrimaryKey(id)
 }
 
 object UserRoles : Table("user_roles") {
-    val userId = long("user_id").references(Users.id, onDelete = ReferenceOption.CASCADE)
+    val userId = uuid("user_id").references(Users.id, onDelete = ReferenceOption.CASCADE)
     val role = varchar("role", 50)
 
     override val primaryKey = PrimaryKey(userId, role)
@@ -238,38 +272,45 @@ object UserRoles : Table("user_roles") {
 ### Repository Implementation
 
 ```kotlin
+import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.transactions.transaction
+import java.time.Instant
+import java.util.UUID
+
 @Repository
 class UserRepository {
 
     fun save(user: User): User = transaction {
-        val id = if (user.id == 0L) {
-            Users.insert {
-                it[email] = user.email
-                it[name] = user.name
-                it[passwordHash] = user.passwordHash
-                it[createdAt] = user.createdAt
-            } get Users.id
-        } else {
-            Users.update({ Users.id eq user.id }) {
-                it[name] = user.name
-                it[email] = user.email
-                it[updatedAt] = LocalDateTime.now()
-            }
-            user.id
+        Users.insert {
+            it[id] = user.id
+            it[email] = user.email
+            it[name] = user.name
+            it[passwordHash] = user.passwordHash
+            it[createdAt] = user.createdAt
+            it[updatedAt] = user.updatedAt
         }
-        findById(id)!!
+        findById(user.id)!!
     }
 
-    fun findById(id: Long): User? = transaction {
+    fun update(user: User): User = transaction {
+        Users.update({ Users.id eq user.id }) {
+            it[name] = user.name
+            it[email] = user.email
+            it[updatedAt] = Instant.now()
+        }
+        findById(user.id)!!
+    }
+
+    fun findById(id: UUID): User? = transaction {
         Users.select { Users.id eq id }
             .map { it.toUser() }
-            .firstOrNull()
+            .singleOrNull()
     }
 
     fun findByEmail(email: String): User? = transaction {
         Users.select { Users.email eq email }
             .map { it.toUser() }
-            .firstOrNull()
+            .singleOrNull()
     }
 
     fun findAll(): List<User> = transaction {
@@ -277,11 +318,11 @@ class UserRepository {
             .map { it.toUser() }
     }
 
-    fun deleteById(id: Long): Boolean = transaction {
+    fun deleteById(id: UUID): Boolean = transaction {
         Users.deleteWhere { Users.id eq id } > 0
     }
 
-    fun existsById(id: Long): Boolean = transaction {
+    fun existsById(id: UUID): Boolean = transaction {
         Users.select { Users.id eq id }.count() > 0
     }
 }
@@ -290,20 +331,27 @@ class UserRepository {
 ### Conversion Function
 
 ```kotlin
+import org.jetbrains.exposed.sql.ResultRow
+import java.time.Instant
+import java.util.UUID
+
 private fun ResultRow.toUser() = User(
     id = this[Users.id],
     email = this[Users.email],
     name = this[Users.name],
     passwordHash = this[Users.passwordHash],
-    createdAt = this[Users.createdAt]
+    createdAt = this[Users.createdAt],
+    updatedAt = this[Users.updatedAt]
 )
 ```
 
 ### Complex Queries
 
 ```kotlin
+import java.util.UUID
+
 // Join query
-fun findUserWithRoles(id: Long): UserWithRoles? = transaction {
+fun findUserWithRoles(id: UUID): UserWithRoles? = transaction {
     (Users innerJoin UserRoles)
         .select { Users.id eq id }
         .groupBy { it[Users.id] }
@@ -331,6 +379,17 @@ fun findActive(): List<User> = transaction {
     Users.select { Users.isActive eq true }
         .map { it.toUser() }
 }
+
+// Search by criteria
+fun searchUsers(criteria: UserSearchCriteria): List<User> = transaction {
+    Users.select {
+        (Users.name like "%${criteria.namePattern}%") and
+        (Users.isActive eq true)
+    }
+    .orderBy(Users.createdAt to SortOrder.DESC)
+    .limit(criteria.limit)
+    .map { it.toUser() }
+}
 ```
 
 ---
@@ -340,9 +399,11 @@ fun findActive(): List<User> = transaction {
 ### Custom Exceptions
 
 ```kotlin
+import java.util.UUID
+
 sealed class AppException(message: String) : RuntimeException(message)
 
-class UserNotFoundException(id: Long) :
+class UserNotFoundException(id: UUID) :
     AppException("User with ID $id not found")
 
 class EmailAlreadyInUseException(email: String) :
@@ -355,6 +416,9 @@ class UnauthorizedException(message: String = "Unauthorized") :
     AppException(message)
 
 class InsufficientFundsException(message: String) :
+    AppException(message)
+
+class AccountNotFoundException(message: String) :
     AppException(message)
 ```
 
@@ -400,7 +464,7 @@ class GlobalExceptionHandler {
 
 data class ErrorResponse(
     val message: String,
-    val timestamp: LocalDateTime = LocalDateTime.now(),
+    val timestamp: Instant = Instant.now(),
     val details: Map<String, String>? = null
 )
 ```
@@ -412,13 +476,17 @@ data class ErrorResponse(
 ### JWT Provider
 
 ```kotlin
+import io.jsonwebtoken.*
+import java.util.Date
+import java.util.UUID
+
 @Component
 class JwtProvider(
     @Value("\${jwt.secret}") private val secret: String,
     @Value("\${jwt.expiration}") private val expiration: Long
 ) {
 
-    fun generateToken(userId: Long): String {
+    fun generateToken(userId: UUID): String {
         return Jwts.builder()
             .setSubject(userId.toString())
             .setIssuedAt(Date())
@@ -436,13 +504,17 @@ class JwtProvider(
         }
     }
 
-    fun getUserIdFromToken(token: String): Long {
-        return Jwts.parser()
-            .setSigningKey(secret)
-            .parseClaimsJws(token)
-            .body
-            .subject
-            .toLong()
+    fun getUserIdFromToken(token: String): UUID? {
+        return try {
+            val subject = Jwts.parser()
+                .setSigningKey(secret)
+                .parseClaimsJws(token)
+                .body
+                .subject
+            UUID.fromString(subject)
+        } catch (e: Exception) {
+            null
+        }
     }
 }
 ```
@@ -450,6 +522,13 @@ class JwtProvider(
 ### JWT Filter
 
 ```kotlin
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.web.filter.OncePerRequestFilter
+import javax.servlet.FilterChain
+import javax.servlet.http.HttpServletRequest
+import javax.servlet.http.HttpServletResponse
+
 @Component
 class JwtFilter(private val jwtProvider: JwtProvider) : OncePerRequestFilter() {
 
@@ -462,8 +541,10 @@ class JwtFilter(private val jwtProvider: JwtProvider) : OncePerRequestFilter() {
 
         if (token != null && jwtProvider.validateToken(token)) {
             val userId = jwtProvider.getUserIdFromToken(token)
-            SecurityContextHolder.getContext().authentication =
-                UsernamePasswordAuthenticationToken(userId, null, emptyList())
+            if (userId != null) {
+                SecurityContextHolder.getContext().authentication =
+                    UsernamePasswordAuthenticationToken(userId, null, emptyList())
+            }
         }
 
         chain.doFilter(request, response)
@@ -517,6 +598,19 @@ class SecurityConfig(
 ### Unit Test
 
 ```kotlin
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
+import org.mockito.InjectMocks
+import org.mockito.Mock
+import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.kotlin.any
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.assertThrows
+import java.time.Instant
+import java.util.UUID
+
 @ExtendWith(MockitoExtension::class)
 class UserServiceTest {
 
@@ -526,6 +620,9 @@ class UserServiceTest {
     @Mock
     private lateinit var emailService: EmailService
 
+    @Mock
+    private lateinit var passwordEncoder: PasswordEncoder
+
     @InjectMocks
     private lateinit var userService: UserService
 
@@ -533,8 +630,11 @@ class UserServiceTest {
     fun `should create user successfully`() {
         // Arrange
         val dto = CreateUserDto("john@example.com", "John", "password123")
-        val savedUser = User(1L, "john@example.com", "John", "hashed", LocalDateTime.now())
+        val userId = UUID.randomUUID()
+        val now = Instant.now()
+        val savedUser = User(userId, "john@example.com", "John", "hashed", now, now)
 
+        whenever(passwordEncoder.encode(any())).thenReturn("hashed")
         whenever(userRepository.save(any())).thenReturn(savedUser)
 
         // Act
@@ -550,8 +650,16 @@ class UserServiceTest {
     fun `should throw when email already exists`() {
         // Arrange
         val dto = CreateUserDto("john@example.com", "John", "password123")
+        val existingUser = User(
+            UUID.randomUUID(),
+            "john@example.com",
+            "John",
+            "hashed",
+            Instant.now(),
+            Instant.now()
+        )
         whenever(userRepository.findByEmail("john@example.com"))
-            .thenReturn(User(1L, "john@example.com", "John", "hashed", LocalDateTime.now()))
+            .thenReturn(existingUser)
 
         // Act & Assert
         assertThrows<EmailAlreadyInUseException> {
@@ -690,28 +798,215 @@ logging:
 
 ## Database Migrations (Flyway)
 
+**CRITICAL RULES FOR MIGRATIONS:**
+- **ALWAYS enable UUID extension first**
+- **ALWAYS use UUID for primary keys**
+- **ALWAYS use TIMESTAMPTZ for timestamps** (stores in UTC)
+
 ### V1__init.sql
 
 ```sql
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Users table with UUID and TIMESTAMPTZ
 CREATE TABLE users (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email VARCHAR(255) NOT NULL UNIQUE,
     name VARCHAR(255) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_created_at ON users(created_at);
 
+-- User roles junction table
 CREATE TABLE user_roles (
-    user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     role VARCHAR(50) NOT NULL,
     PRIMARY KEY (user_id, role)
 );
 ```
 
+### V2__add_refresh_tokens.sql
+
+```sql
+CREATE TABLE refresh_tokens (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token VARCHAR(255) NOT NULL UNIQUE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_refresh_tokens_user_id ON refresh_tokens(user_id);
+CREATE INDEX idx_refresh_tokens_token ON refresh_tokens(token);
+CREATE INDEX idx_refresh_tokens_expires_at ON refresh_tokens(expires_at);
+```
+
 ---
 
-**Remember:** Keep your code organized, testable, and maintainable. Follow these patterns consistently across your backend.
+## DDD Tactical Patterns (Optional)
+
+Use these patterns when complexity warrants it. See main SKILL.md for when to use each.
+
+### Aggregate Example
+
+```kotlin
+import java.time.Instant
+import java.util.UUID
+
+// Aggregate Root - enforces business rules
+class Order(
+    val id: UUID = UUID.randomUUID(),
+    private val items: MutableList<OrderItem> = mutableListOf(),
+    var status: OrderStatus = OrderStatus.DRAFT,
+    val createdAt: Instant = Instant.now()
+) {
+    val total: Money
+        get() = Money(items.sumOf { it.price.amount * it.quantity })
+
+    fun addItem(productId: UUID, quantity: Int, price: Money) {
+        if (status != OrderStatus.DRAFT) {
+            throw IllegalStateException("Cannot modify submitted order")
+        }
+        items.add(OrderItem(UUID.randomUUID(), productId, quantity, price))
+    }
+
+    fun submit() {
+        require(items.isNotEmpty()) { "Cannot submit empty order" }
+        status = OrderStatus.SUBMITTED
+    }
+
+    fun getItems(): List<OrderItem> = items.toList()
+}
+
+// Entity within aggregate
+data class OrderItem(
+    val id: UUID,
+    val productId: UUID,
+    val quantity: Int,
+    val price: Money
+)
+
+enum class OrderStatus {
+    DRAFT, SUBMITTED, PAID, SHIPPED, DELIVERED
+}
+```
+
+### Value Object Examples
+
+```kotlin
+import java.math.BigDecimal
+
+// Money value object
+data class Money(
+    val amount: BigDecimal,
+    val currency: String = "USD"
+) {
+    init {
+        require(amount >= BigDecimal.ZERO) { "Amount cannot be negative" }
+    }
+
+    operator fun plus(other: Money): Money {
+        require(currency == other.currency) { "Currency mismatch" }
+        return Money(amount + other.amount, currency)
+    }
+
+    operator fun times(multiplier: Int): Money {
+        return Money(amount * multiplier.toBigDecimal(), currency)
+    }
+}
+
+// Email value object
+data class Email(val value: String) {
+    init {
+        require(value.matches(Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$"))) {
+            "Invalid email format: $value"
+        }
+    }
+}
+
+// Address value object
+data class Address(
+    val street: String,
+    val city: String,
+    val zipCode: String,
+    val country: String
+) {
+    init {
+        require(street.isNotBlank()) { "Street cannot be blank" }
+        require(city.isNotBlank()) { "City cannot be blank" }
+    }
+}
+```
+
+### Repository for Aggregate
+
+```kotlin
+import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.transactions.transaction
+import java.util.UUID
+
+@Repository
+class OrderRepository {
+
+    // Save entire aggregate
+    fun save(order: Order): Order = transaction {
+        // Insert order
+        Orders.insert {
+            it[id] = order.id
+            it[status] = order.status.name
+            it[createdAt] = order.createdAt
+        }
+
+        // Insert all order items
+        order.getItems().forEach { item ->
+            OrderItems.insert {
+                it[id] = item.id
+                it[orderId] = order.id
+                it[productId] = item.productId
+                it[quantity] = item.quantity
+                it[price] = item.price.amount
+            }
+        }
+
+        findById(order.id)!!
+    }
+
+    // Load entire aggregate
+    fun findById(id: UUID): Order? = transaction {
+        val orderRow = Orders.select { Orders.id eq id }.singleOrNull() ?: return@transaction null
+
+        val items = OrderItems.select { OrderItems.orderId eq id }
+            .map { row ->
+                OrderItem(
+                    id = row[OrderItems.id],
+                    productId = row[OrderItems.productId],
+                    quantity = row[OrderItems.quantity],
+                    price = Money(row[OrderItems.price])
+                )
+            }
+
+        Order(
+            id = orderRow[Orders.id],
+            status = OrderStatus.valueOf(orderRow[Orders.status]),
+            createdAt = orderRow[Orders.createdAt]
+        ).apply {
+            items.forEach { addItem(it.productId, it.quantity, it.price) }
+        }
+    }
+}
+```
+
+---
+
+**Remember:**
+- **Always use UUID for IDs** ✅
+- **Always use Instant (UTC) for timestamps** ✅
+- Keep your code organized, testable, and maintainable
+- Follow these patterns consistently across your backend
+- Add domain layer only when complexity warrants it

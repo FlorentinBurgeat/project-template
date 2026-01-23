@@ -274,8 +274,11 @@ const routes = [
 This section lists the available skills for frontend development tasks.
 
 ### Available Skills
-<!-- To be completed with actual skills -->
-- TBD
+
+- **frontend-dev-guidelines** - Vue 3 frontend best practices with TypeScript, Composition API, and component patterns
+- **shadcn** - ShadCN/UI component library patterns with Radix UI primitives and Tailwind CSS
+- **tailwind** - Tailwind CSS v4 utility-first styling, responsive design, and dark mode configuration
+- **tanstack-query** - TanStack Query v5 data fetching patterns, cache management, and API integration
 
 ---
 

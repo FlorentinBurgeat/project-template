@@ -223,6 +223,71 @@
                   "captureMessage"
               ]
           }
+      },
+      "keycloak": {
+          "type": "domain",
+          "enforcement": "suggest",
+          "priority": "high",
+          "description": "Keycloak identity and access management expertise for server setup, realm management, clustering, and admin client usage",
+          "promptTriggers": {
+              "keywords": [
+                  "keycloak",
+                  "identity provider",
+                  "IAM",
+                  "identity and access management",
+                  "SSO",
+                  "single sign-on",
+                  "realm",
+                  "keycloak server",
+                  "authentication",
+                  "authorization",
+                  "OAuth2",
+                  "OpenID Connect",
+                  "OIDC",
+                  "user federation",
+                  "LDAP",
+                  "SAML",
+                  "client credentials",
+                  "access token",
+                  "refresh token",
+                  "keycloak admin",
+                  "KeycloakBuilder",
+                  "RealmRepresentation",
+                  "infinispan",
+                  "clustering",
+                  "standalone",
+                  "domain mode",
+                  "keycloak deployment"
+              ],
+              "intentPatterns": [
+                  "(setup|install|configure|deploy).*?(keycloak|identity provider|SSO)",
+                  "(create|manage|configure).*?(realm|client|user).*?keycloak",
+                  "(how to|how do I).*?keycloak.*?(setup|configure|create|manage)",
+                  "(integrate|connect).*?keycloak",
+                  "(clustering|high availability).*?keycloak",
+                  "keycloak.*?(admin|API|REST)",
+                  "(realm|client|user).*?(creation|management|configuration)"
+              ]
+          },
+          "fileTriggers": {
+              "pathPatterns": [
+                  "**/keycloak/**/*.kt",
+                  "**/security/**/*.kt",
+                  "**/auth/**/*.kt",
+                  "**/config/KeycloakConfig.kt",
+                  "**/config/SecurityConfig.kt"
+              ],
+              "contentPatterns": [
+                  "import org.keycloak",
+                  "KeycloakBuilder",
+                  "RealmRepresentation",
+                  "UserRepresentation",
+                  "ClientRepresentation",
+                  "IdentityProviderRepresentation",
+                  "keycloak\\.realm\\(",
+                  "keycloak\\.realms\\(\\)"
+              ]
+          }
       }
   },
   "notes": {

@@ -157,8 +157,10 @@ See `.env.example` for complete list with descriptions.
 This section lists the available skills for backend development tasks.
 
 ### Available Skills
-<!-- To be completed with actual skills -->
-- TBD
+
+- **kotlin-spring-boot-backend** - Kotlin/Spring Boot development with REST controllers, services, repositories, DDD patterns, and Exposed ORM
+- **keycloak** - Keycloak identity and access management for server setup, realm management, clustering, and admin client integration
+- **route-tester** - HTTP API route testing patterns with JWT authentication and integration testing strategies
 
 ---
 

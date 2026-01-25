@@ -36,6 +36,15 @@ server:
     include-message: always
     include-binding-errors: always
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+
 # Keycloak Configuration
 keycloak:
   url: ${KEYCLOAK_INTERNAL_URL:http://localhost:8081}
@@ -57,12 +66,6 @@ keycloak:
   backend:
     client-id: ${KEYCLOAK_BACKEND_CLIENT_ID:backend-service}
     client-secret: ${KEYCLOAK_BACKEND_CLIENT_SECRET:change-this-secret-in-production}
-
-# Legacy JWT Configuration (DEPRECATED - will be removed)
-# jwt:
-#   secret: ${JWT_SECRET:jwt_secret_change_in_production}
-#   access-expiration: ${JWT_ACCESS_EXPIRATION:900000}      # 15 minutes in ms
-#   refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000} # 7 days in ms
 
 logging:
   level:

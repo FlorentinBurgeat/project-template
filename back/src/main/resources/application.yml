@@ -23,18 +23,49 @@ spring:
     locations: classpath:db/migration
     validate-on-migrate: true
 
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_INTERNAL_URL:http://localhost:8081}/realms/${KEYCLOAK_REALM_NAME:template-realm}
+          jwk-set-uri: ${KEYCLOAK_INTERNAL_URL:http://localhost:8081}/realms/${KEYCLOAK_REALM_NAME:template-realm}/protocol/openid-connect/certs
+
 server:
   port: ${PORT:8080}
   error:
     include-message: always
     include-binding-errors: always
 
-jwt:
-  secret: ${JWT_SECRET:jwt_secret_change_in_production}
-  access-expiration: ${JWT_ACCESS_EXPIRATION:900000}      # 15 minutes in ms
-  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000} # 7 days in ms
+# Keycloak Configuration
+keycloak:
+  url: ${KEYCLOAK_INTERNAL_URL:http://localhost:8081}
+  realm:
+    name: ${KEYCLOAK_REALM_NAME:template-realm}
+  admin:
+    username: ${KEYCLOAK_ADMIN_USERNAME:admin}
+    password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
+    realm: master
+    client-id: admin-cli
+  frontend:
+    client-id: ${KEYCLOAK_FRONTEND_CLIENT_ID:frontend-client}
+    redirect-uris:
+      - http://localhost:5173/*
+      - http://localhost:3000/*
+    web-origins:
+      - http://localhost:5173
+      - http://localhost:3000
+  backend:
+    client-id: ${KEYCLOAK_BACKEND_CLIENT_ID:backend-service}
+    client-secret: ${KEYCLOAK_BACKEND_CLIENT_SECRET:change-this-secret-in-production}
+
+# Legacy JWT Configuration (DEPRECATED - will be removed)
+# jwt:
+#   secret: ${JWT_SECRET:jwt_secret_change_in_production}
+#   access-expiration: ${JWT_ACCESS_EXPIRATION:900000}      # 15 minutes in ms
+#   refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000} # 7 days in ms
 
 logging:
   level:
     org.springframework.security: DEBUG
     org.jetbrains.exposed: DEBUG
+    org.keycloak: INFO

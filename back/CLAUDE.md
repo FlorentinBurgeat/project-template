@@ -43,29 +43,93 @@ Each feature is a self-contained module with the following structure:
 
 ## Authentication & Security
 
+### Keycloak Integration
+
+This backend uses **Keycloak** as the identity and access management solution. Each project fork can have its own isolated realm on a shared Keycloak instance.
+
+**Key Features:**
+- OAuth2 / OpenID Connect authentication
+- Multi-realm support for project isolation
+- Automatic realm initialization on startup
+- HTTP-only cookies for refresh tokens (XSS protection)
+- Built-in user management via Keycloak Admin API
+
 ### Endpoints
 
 **Public endpoints:**
-- `POST /auth/register` - User registration
-- `POST /auth/login` - User login
-- `POST /auth/refresh` - Refresh access token
+- `GET /api/auth/login` - Returns Keycloak login URL
+- `GET /api/auth/register` - Returns Keycloak registration URL
+- `POST /api/auth/callback` - Exchanges authorization code for tokens
+- `POST /api/auth/refresh` - Refreshes access token using HTTP-only cookie
+- `POST /api/auth/logout` - Revokes tokens and clears cookies
 
 **Protected endpoints:**
-- All other endpoints require JWT Bearer token authentication
+- All other endpoints require JWT Bearer token from Keycloak
 - Token must be included in `Authorization: Bearer <token>` header
 
-### JWT Implementation
-- **Access Token**: Short-lived token (e.g., 15 minutes) for API access
-- **Refresh Token**: Long-lived token (e.g., 7 days) stored securely, used to obtain new access tokens
-- Tokens contain user ID and roles/permissions for authorization
+### Authentication Flow
+
+1. **Login**: Frontend redirects to Keycloak login page
+2. **Callback**: Keycloak redirects back with authorization code
+3. **Token Exchange**: Backend exchanges code for tokens
+4. **Token Storage**:
+   - Access token: In-memory (frontend) - 15 minutes
+   - Refresh token: HTTP-only cookie - 7 days
+5. **API Calls**: Frontend sends access token in Authorization header
+6. **Token Refresh**: Automatic refresh using HTTP-only cookie
+
+### Realm Management
+
+The `RealmInitializationService` automatically creates and configures the realm on startup:
+- Creates realm if it doesn't exist
+- Configures frontend client (public SPA)
+- Configures backend client (confidential service)
+- Sets up token lifespans and security policies
+- Configures OIDC protocol mappers
+
+**Realm Naming:** Set via `KEYCLOAK_REALM_NAME` environment variable
+- Example: `project-template-dev`
+- Example: `myproject-prod`
+
+### User Management
+
+**Option A: Keycloak-Managed (Recommended)**
+- Users register via Keycloak's built-in registration page
+- Built-in security, email verification, password policies
+- Less code to maintain
+
+**Option B: Custom Registration (Advanced)**
+- Use `UserManagementService` for custom registration flows
+- Provides full control over registration UI/UX
+- Example code provided for reference
 
 ### SSO (OpenID Connect)
-Infrastructure is ready to support OAuth2/OpenID Connect providers:
+Keycloak natively supports SSO providers:
 - Google
 - Facebook
-- Any other OpenID Connect compliant provider
+- GitHub
+- Microsoft Azure AD
+- Any OpenID Connect or SAML 2.0 provider
 
-Configuration is done via environment variables (client ID, secret, redirect URLs).
+Configuration is done via Keycloak Admin Console or Admin API.
+
+### Security Features
+
+- **HTTP-only cookies**: Refresh tokens protected from XSS
+- **CORS**: Configured for allowed frontend origins
+- **SameSite cookies**: CSRF protection
+- **Brute force protection**: Built into Keycloak
+- **Session management**: Idle timeout, max session lifespan
+- **Token validation**: Spring Security OAuth2 Resource Server
+
+### Setup Documentation
+
+See [KEYCLOAK_SETUP.md](KEYCLOAK_SETUP.md) for:
+- Quick start guide
+- Environment configuration
+- Deployment modes (dev standalone, prod clustered)
+- Troubleshooting
+- Production considerations
 
 ---
 
@@ -92,17 +156,25 @@ Exposed is used for type-safe SQL queries in Kotlin. Each feature has its own re
 
 ## Base Features Included
 
-### Authentication Feature
-Located in `/features/authentication`:
-- User registration (email/password)
-- User login (email/password)
-- Token refresh
-- Password change
-- Email change
-- Account deletion
-- SSO integration points
+### Keycloak Feature
+Located in `/features/keycloak`:
+- Keycloak admin client configuration (`KeycloakConfig`)
+- Automatic realm initialization (`RealmInitializationService`)
+- OAuth2 authentication flow (`KeycloakAuthController`, `KeycloakAuthService`)
+- User management service (`UserManagementService`) - optional for custom flows
+- HTTP-only cookie handling for refresh tokens
+- Integration with Spring Security OAuth2 Resource Server
 
-This feature serves as a reference implementation for creating new features.
+### Legacy Authentication Feature (Deprecated)
+Located in `/features/authentication`:
+- ⚠️ **DEPRECATED**: Custom JWT implementation replaced by Keycloak
+- Kept for reference during migration
+- Will be removed in future versions
+
+The Keycloak feature serves as a reference implementation for:
+- OAuth2/OIDC integration
+- Keycloak Admin API usage
+- Multi-realm architecture
 
 ---
 

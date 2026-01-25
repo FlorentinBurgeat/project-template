@@ -28,8 +28,8 @@ Eliminate initial project setup time by providing a proven, configured, and func
 - **ORM**: Exposed
 - **Database**: PostgreSQL
 - **Migrations**: Flyway
-- **Authentication**: JWT (with refresh tokens)
-- **SSO**: OpenID Connect (Google, Facebook, extensible)
+- **Authentication**: Keycloak (OpenID Connect provider)
+- **SSO**: Keycloak (supports Google, Facebook, and extensible providers)
 
 ### DevOps
 - **Containerization**: Docker + Docker Compose
@@ -39,17 +39,23 @@ Eliminate initial project setup time by providing a proven, configured, and func
 
 ## Authentication Flow
 
-### Classic Registration & Login
-1. User registers with email and password
-2. Backend returns JWT access token + refresh token
-3. Frontend stores tokens (localStorage/cookies depending on implementation)
-4. All requests to protected endpoints include token in `Authorization: Bearer <token>` header
+### Keycloak-based Authentication
+1. User authenticates via Keycloak (email/password, social providers, or other configured identity providers)
+2. Keycloak returns OpenID Connect tokens (access token + refresh token + ID token)
+3. Frontend stores tokens and uses them for all authenticated requests
+4. Backend validates tokens using Keycloak's public key endpoints
+5. All requests to protected endpoints include token in `Authorization: Bearer <token>` header
 
-### Refresh Token
-When access token expires, frontend automatically uses refresh token to obtain a new access token without re-requesting credentials.
+### Token Refresh
+When access token expires, frontend automatically uses refresh token to obtain a new access token from Keycloak without re-prompting the user.
 
-### SSO (OpenID Connect)
-The system is designed to support SSO providers (Google, Facebook, etc.) via OpenID Connect. Infrastructure is ready, full implementation can be added as needed.
+### Social Login & SSO
+Keycloak supports multiple identity providers out of the box:
+- Email/Password (default)
+- Google, Facebook, and other OAuth 2.0/OpenID Connect providers
+- LDAP, SAML, and custom providers (configurable)
+
+The system centralizes identity management through Keycloak, eliminating the need for custom authentication logic.
 
 ---
 
@@ -61,9 +67,9 @@ The project includes a `docker-compose.yml` to launch the entire stack (frontend
 ### Environment Variables
 The project uses environment variables for all sensitive or environment-specific configuration:
 - Database credentials
-- JWT secrets
-- Service URLs
-- SSO configuration (client IDs, secrets)
+- Keycloak server URL and realm
+- Keycloak client ID and secret
+- Service URLs (frontend, backend)
 - Etc.
 
 A `.env.example` file is provided with all necessary variables documented.
@@ -96,19 +102,18 @@ The template should allow to:
 
 ## Base Features Included
 
-The template includes the **Authentication & Account Management** feature by default:
-- Registration (email/password)
-- Login (email/password)
-- Refresh token
-- Password change
-- Email change
-- Account deletion
-- SSO ready (Google, Facebook via OpenID Connect)
+The template includes **Authentication & Account Management** via Keycloak by default:
+- Registration (delegated to Keycloak)
+- Login with email/password
+- Social login (Google, Facebook, and other configured providers)
+- Automatic token refresh
+- Protected API endpoints with token validation
+- SSO across multiple applications
 
 ### Default Pages (Frontend)
-- Login/Registration page
+- Login/Registration page (redirects to Keycloak)
 - Home page with header and navigation menu
-- User settings page (change email/password, account deletion)
+- User settings page (redirects to Keycloak account management for password/email changes)
 
 ---
 
@@ -130,5 +135,5 @@ This section lists the available skills to work on this project. Skills are reus
 
 ---
 
-**Version**: 1.0  
-**Last Updated**: December 2024
+**Version**: 1.1
+**Last Updated**: January 2025

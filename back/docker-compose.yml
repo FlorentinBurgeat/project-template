@@ -11,6 +11,51 @@ services:
             POSTGRES_DB: ${POSTGRES_DB}
         volumes:
             - pgdata:/var/lib/postgresql/data
+            - ./init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
+        networks:
+            - app-network
+
+    keycloak:
+        container_name: ${DOCKER_KEYCLOAK_CONTAINER_NAME:-keycloak}
+        image: quay.io/keycloak/keycloak:26.0.7
+        restart: always
+        ports:
+            - '${KEYCLOAK_PORT:-8081}:8080'
+        environment:
+            # Keycloak admin credentials
+            KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
+            KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+
+            # Database configuration (Keycloak uses same PostgreSQL instance)
+            KC_DB: postgres
+            KC_DB_URL: jdbc:postgresql://database:5432/${KEYCLOAK_DB_NAME:-keycloak_db}
+            KC_DB_USERNAME: ${POSTGRES_USER}
+            KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+
+            # Keycloak configuration (v2 hostname options)
+            KC_HOSTNAME: ${KEYCLOAK_HOSTNAME:-localhost}
+            KC_HOSTNAME_PORT: ${KEYCLOAK_PORT:-8081}
+            KC_HOSTNAME_STRICT_HTTPS: false
+            KC_HTTP_ENABLED: true
+            KC_HEALTH_ENABLED: true
+            KC_METRICS_ENABLED: true
+
+            # Logging
+            KC_LOG_LEVEL: ${KEYCLOAK_LOG_LEVEL:-INFO}
+
+        command: start-dev
+        depends_on:
+            - database
+        volumes:
+            - keycloak_data:/opt/keycloak/data
+        networks:
+            - app-network
+        healthcheck:
+            test: ["CMD", "sh", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && echo 'OK'"]
+            interval: 10s
+            timeout: 5s
+            retries: 3
+            start_period: 40s
 
     pgadmin:
         container_name: ${DOCKER_PGADMIN_CONTAINER_NAME}
@@ -23,6 +68,8 @@ services:
             PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
         depends_on:
             - database
+        networks:
+            - app-network
 
     backend:
         container_name: ${DOCKER_BACKEND_CONTAINER_NAME}
@@ -33,13 +80,30 @@ services:
         ports:
             - '${PORT}:8080'
         depends_on:
-            - database
+            keycloak:
+                condition: service_healthy
+            database:
+                condition: service_started
         environment:
             SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
             SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
             SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
             SPRING_JPA_HIBERNATE_DDL_AUTO: validate
             SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.PostgreSQLDialect
+            KEYCLOAK_INTERNAL_URL: http://keycloak:8080
+            KEYCLOAK_REALM_NAME: ${KEYCLOAK_REALM_NAME:-template-realm}
+            KEYCLOAK_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
+            KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+            KEYCLOAK_FRONTEND_CLIENT_ID: ${KEYCLOAK_FRONTEND_CLIENT_ID:-frontend-client}
+            KEYCLOAK_BACKEND_CLIENT_ID: ${KEYCLOAK_BACKEND_CLIENT_ID:-backend-service}
+            KEYCLOAK_BACKEND_CLIENT_SECRET: ${KEYCLOAK_BACKEND_CLIENT_SECRET:-change-this-secret-in-production}
+        networks:
+            - app-network
 
 volumes:
     pgdata:
+    keycloak_data:
+
+networks:
+    app-network:
+        driver: bridge

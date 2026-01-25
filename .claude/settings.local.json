@@ -4,7 +4,8 @@
       "Bash(ls:*)",
       "Bash(./mvnw test:*)",
       "Bash(./mvnw.cmd test:*)",
-      "mcp__context7__query-docs"
+      "mcp__context7__query-docs",
+      "Bash(mvn clean install:*)"
     ]
   }
 }

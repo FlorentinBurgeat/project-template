@@ -39,6 +39,20 @@ class KeycloakAuthController(
     }
 
     /**
+     * Simple health check endpoint to test hot reload.
+     *
+     * GET /api/auth/health
+     */
+    @GetMapping("/health")
+    fun healthCheck(): ResponseEntity<Map<String, String>> {
+        return ResponseEntity.ok(mapOf(
+            "status" to "OK",
+            "message" to "Polling-based hot test SUCCESS! 🔥🚀",
+            "timestamp" to System.currentTimeMillis().toString()
+        ))
+    }
+
+    /**
      * Returns the Keycloak login URL for the frontend to redirect to.
      *
      * GET /api/auth/login?redirect_uri=http://localhost:5173/callback

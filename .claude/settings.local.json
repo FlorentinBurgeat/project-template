@@ -5,7 +5,14 @@
       "Bash(./mvnw test:*)",
       "Bash(./mvnw.cmd test:*)",
       "mcp__context7__query-docs",
-      "Bash(mvn clean install:*)"
+      "Bash(mvn clean install:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker-compose build:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker run --rm --entrypoint sh back-backend -c \"ls -la /app/\")",
+      "Bash(docker run:*)",
+      "Bash(curl:*)"
     ]
   }
 }

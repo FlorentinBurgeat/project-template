@@ -50,7 +50,8 @@ class SecurityConfig {
                         "/api/auth/login",
                         "/api/auth/callback",
                         "/api/auth/refresh",
-                        "/api/auth/logout"
+                        "/api/auth/logout",
+                        "/api/auth/health"
                     ).permitAll()
 
                     // Public endpoints - health checks and errors

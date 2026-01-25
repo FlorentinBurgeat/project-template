@@ -1,0 +1,22 @@
+# Development Dockerfile with hot reload support
+FROM maven:3.9-eclipse-temurin-21
+
+WORKDIR /app
+
+# Copy pom.xml and download dependencies
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
+
+# Copy the watch script and fix line endings (convert from Windows to Unix)
+COPY dev-watch-poll.sh /app/dev-watch-poll.sh
+RUN sed -i 's/\r$//' /app/dev-watch-poll.sh && chmod +x /app/dev-watch-poll.sh
+
+# Expose port 8080
+EXPOSE 8080
+
+# Enable DevTools remote restart
+ENV SPRING_DEVTOOLS_RESTART_ENABLED=true
+ENV SPRING_DEVTOOLS_LIVERELOAD_ENABLED=false
+
+# Run the polling-based watch script (works on Windows)
+CMD ["bash", "/app/dev-watch-poll.sh"]

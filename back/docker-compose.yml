@@ -75,7 +75,7 @@ services:
         container_name: ${DOCKER_BACKEND_CONTAINER_NAME}
         build:
             context: .
-            dockerfile: Dockerfile
+            dockerfile: Dockerfile.dev
         restart: always
         ports:
             - '${PORT}:8080'
@@ -97,12 +97,24 @@ services:
             KEYCLOAK_FRONTEND_CLIENT_ID: ${KEYCLOAK_FRONTEND_CLIENT_ID:-frontend-client}
             KEYCLOAK_BACKEND_CLIENT_ID: ${KEYCLOAK_BACKEND_CLIENT_ID:-backend-service}
             KEYCLOAK_BACKEND_CLIENT_SECRET: ${KEYCLOAK_BACKEND_CLIENT_SECRET:-change-this-secret-in-production}
+            # DevTools configuration
+            SPRING_DEVTOOLS_RESTART_ENABLED: true
+            SPRING_DEVTOOLS_LIVERELOAD_ENABLED: false
+        volumes:
+            # Mount source code for hot reload
+            - ./src:/app/src
+            # Mount target directory to persist compiled classes
+            - maven-target:/app/target
+            # Cache Maven dependencies
+            - maven-cache:/root/.m2
         networks:
             - app-network
 
 volumes:
     pgdata:
     keycloak_data:
+    maven-target:
+    maven-cache:
 
 networks:
     app-network:

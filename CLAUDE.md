@@ -14,12 +14,14 @@ Eliminate initial project setup time by providing a proven, configured, and func
 ## Tech Stack
 
 ### Frontend
-- **Framework**: Vue 3 (Composition API)
-- **Routing**: Vue Router
-- **State Management**: Singleton composables (ref/reactive, no Pinia)
-- **HTTP Client**: TanStack Query
-- **Design System**: ShadCN + Tailwind CSS
-- **Build Tool**: Vite
+- **Framework**: Nuxt 4 (Vue 3 Composition API)
+- **Routing**: Nuxt file-based routing (built-in)
+- **State Management**: useState composable (built-in)
+- **Data Fetching**: useFetch & useAsyncData (built-in)
+- **UI Library**: Nuxt UI (@nuxt/ui)
+- **Styling**: Tailwind CSS (via Nuxt UI)
+- **Build Tool**: Vite (via Nuxt)
+- **Server Engine**: Nitro (built-in)
 
 ### Backend
 - **Language**: Kotlin

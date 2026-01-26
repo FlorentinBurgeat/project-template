@@ -119,7 +119,6 @@
                   "Tailwind",
                   "styling",
                   "frontend",
-                  "ShadCN",
                   "composition API"
               ],
               "intentPatterns": [
@@ -147,7 +146,6 @@
                   "<script setup",
                   "defineProps",
                   "defineEmits",
-                  "import.*from.*shadcn",
                   "class=.*tw-",
                   "@apply"
               ]
@@ -286,6 +284,100 @@
                   "IdentityProviderRepresentation",
                   "keycloak\\.realm\\(",
                   "keycloak\\.realms\\(\\)"
+              ]
+          }
+      },
+      "nuxt-dev-guidelines": {
+          "type": "domain",
+          "enforcement": "suggest",
+          "priority": "high",
+          "description": "Nuxt 4 frontend development guidelines with TypeScript, Composition API, file-based routing, auto-imports, server-side rendering, data fetching with useFetch and useAsyncData, SEO and meta tag management with useHead and useSeoMeta, Nitro server engine, and best practices for building performant full-stack web applications",
+          "promptTriggers": {
+              "keywords": [
+                  "Nuxt",
+                  "Nuxt 4",
+                  "Nuxt.js",
+                  "nuxt",
+                  "nuxt config",
+                  "nuxt.config",
+                  "useFetch",
+                  "useAsyncData",
+                  "useState",
+                  "useHead",
+                  "useSeoMeta",
+                  "definePageMeta",
+                  "file-based routing",
+                  "auto-import",
+                  "auto-imports",
+                  "server-side rendering",
+                  "SSR",
+                  "SSG",
+                  "static generation",
+                  "Nitro",
+                  "nitro",
+                  "server directory",
+                  "server/api",
+                  "API routes",
+                  "composables",
+                  "nuxt composable",
+                  "layouts",
+                  "middleware",
+                  "route middleware",
+                  "pages directory",
+                  "SEO",
+                  "meta tags",
+                  "Open Graph",
+                  "og:image",
+                  "Twitter Card",
+                  "head management",
+                  "Nuxt modules",
+                  "Nuxt plugins"
+              ],
+              "intentPatterns": [
+                  "(create|add|build|setup).*?(nuxt|page|layout|middleware|API route)",
+                  "(fetch|load|get).*?data.*?(nuxt|useFetch|useAsyncData)",
+                  "(how to|how do I).*?(nuxt|SSR|server.*?render|fetch.*?data)",
+                  "(SEO|meta|head).*?(nuxt|tags|useSeoMeta|useHead)",
+                  "(configure|setup).*?(nuxt|nitro|module)",
+                  "nuxt.*?(routing|navigation|middleware)",
+                  "(server|API).*?(route|endpoint|handler).*?nuxt"
+              ]
+          },
+          "fileTriggers": {
+              "pathPatterns": [
+                  "front/**/*.vue",
+                  "front/pages/**/*.vue",
+                  "front/components/**/*.vue",
+                  "front/composables/**/*.ts",
+                  "front/server/**/*.ts",
+                  "front/nuxt.config.ts",
+                  "front/app.vue",
+                  "app/**/*.vue",
+                  "pages/**/*.vue",
+                  "server/api/**/*.ts",
+                  "server/routes/**/*.ts",
+                  "nuxt.config.ts"
+              ],
+              "pathExclusions": [
+                  "**/*.test.ts",
+                  "**/*.spec.ts",
+                  "**/node_modules/**"
+              ],
+              "contentPatterns": [
+                  "defineNuxtConfig",
+                  "useFetch",
+                  "useAsyncData",
+                  "useLazyFetch",
+                  "useLazyAsyncData",
+                  "useState",
+                  "useHead",
+                  "useSeoMeta",
+                  "definePageMeta",
+                  "defineEventHandler",
+                  "useRouter",
+                  "useRoute",
+                  "navigateTo",
+                  "defineNuxtRouteMiddleware"
               ]
           }
       }

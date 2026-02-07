@@ -43,11 +43,12 @@ services:
             # Logging
             KC_LOG_LEVEL: ${KEYCLOAK_LOG_LEVEL:-INFO}
 
-        command: start-dev
+        command: start-dev --import-realm
         depends_on:
             - database
         volumes:
             - keycloak_data:/opt/keycloak/data
+            - ./keycloak/template-realm.json:/opt/keycloak/data/import/template-realm.json:ro
         networks:
             - app-network
         healthcheck:

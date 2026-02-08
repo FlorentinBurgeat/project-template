@@ -12,7 +12,12 @@
       "Bash(docker exec:*)",
       "Bash(docker run --rm --entrypoint sh back-backend -c \"ls -la /app/\")",
       "Bash(docker run:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(python:*)",
+      "mcp__nuxt-ui-remote__get-component",
+      "mcp__nuxt-ui-remote__get-example",
+      "mcp__nuxt-ui-remote__get-component-metadata",
+      "Bash(npx nuxi build)"
     ]
   }
 }

@@ -1,76 +1,129 @@
 <template>
   <div>
+    <!-- HERO -->
     <UPageHero
-      title="Nuxt Starter Template"
-      description="A production-ready starter template powered by Nuxt UI. Build beautiful, accessible, and performant applications in minutes, not hours."
-      :links="[{
-        label: 'Get started',
-        to: 'https://ui.nuxt.com/docs/getting-started/installation/nuxt',
-        target: '_blank',
-        trailingIcon: 'i-lucide-arrow-right',
-        size: 'xl'
-      }, {
-        label: 'Use this template',
-        to: 'https://github.com/nuxt-ui-templates/starter',
-        target: '_blank',
-        icon: 'i-simple-icons-github',
-        size: 'xl',
-        color: 'neutral',
-        variant: 'subtle'
-      }]"
+    :headline="cfg.hero.headline"
+      :title="cfg.hero.title"
+      :description="cfg.hero.description"
+      :links="[
+        {
+          label: cfg.hero.primaryCta.label,
+          to: cfg.hero.primaryCta.to,
+          trailingIcon: 'i-lucide-arrow-right',
+          size: 'xl' as const
+        },
+        {
+          label: cfg.hero.secondaryCta.label,
+          to: cfg.hero.secondaryCta.to,
+          icon: cfg.hero.secondaryCta.icon,
+          size: 'xl' as const,
+          color: 'neutral' as const,
+          variant: 'subtle' as const
+        }
+      ]"
     />
 
+    <!-- VALUE PROPOSITION -->
     <UPageSection
-      id="features"
-      title="Everything you need to build modern Nuxt apps"
-      description="Start with a solid foundation. This template includes all the essentials for building production-ready applications with Nuxt UI's powerful component system."
-      :features="[{
-        icon: 'i-lucide-rocket',
-        title: 'Production-ready from day one',
-        description: 'Pre-configured with TypeScript, ESLint, Tailwind CSS, and all the best practices. Focus on building features, not setting up tooling.'
-      }, {
-        icon: 'i-lucide-palette',
-        title: 'Beautiful by default',
-        description: 'Leveraging Nuxt UI\'s design system with automatic dark mode, consistent spacing, and polished components that look great out of the box.'
-      }, {
-        icon: 'i-lucide-zap',
-        title: 'Lightning fast',
-        description: 'Optimized for performance with SSR/SSG support, automatic code splitting, and edge-ready deployment. Your users will love the speed.'
-      }, {
-        icon: 'i-lucide-blocks',
-        title: '100+ components included',
-        description: 'Access Nuxt UI\'s comprehensive component library. From forms to navigation, everything is accessible, responsive, and customizable.'
-      }, {
-        icon: 'i-lucide-code-2',
-        title: 'Developer experience first',
-        description: 'Auto-imports, hot module replacement, and TypeScript support. Write less boilerplate and ship more features.'
-      }, {
-        icon: 'i-lucide-shield-check',
-        title: 'Built for scale',
-        description: 'Enterprise-ready architecture with proper error handling, SEO optimization, and security best practices built-in.'
-      }]"
+      id="value"
+      :headline="cfg.valueProposition.headline"
+      :title="cfg.valueProposition.title"
+      :description="cfg.valueProposition.description"
+    >
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div
+          v-for="(point, i) in cfg.valueProposition.points"
+          :key="i"
+          class="flex items-start gap-3"
+        >
+          <UIcon
+          :name="point.icon"
+          class="text-primary size-6 shrink-0 mt-0.5"
+          />
+          <p class="text-(--ui-text-muted)">
+            {{ point.text }}
+          </p>
+        </div>
+      </div>
+    </UPageSection>
+
+    <!-- FEATURES -->
+    <UPageSection
+    id="features"
+    :headline="cfg.features.headline"
+    :title="cfg.features.title"
+    :description="cfg.features.description"
+    :features="cfg.features.items"
     />
 
+    <!-- TESTIMONIALS -->
+    <UPageSection
+    id="testimonials"
+    :headline="cfg.testimonials.headline"
+    :title="cfg.testimonials.title"
+    >
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <LandingTestimonialCard
+        v-for="(testimonial, i) in cfg.testimonials.items"
+          :key="i"
+          :testimonial="testimonial"
+        />
+      </div>
+    </UPageSection>
+
+    <!-- APP DOWNLOAD -->
+    <UPageSection
+    id="download"
+      :headline="cfg.appDownload.headline"
+      :title="cfg.appDownload.title"
+      :description="cfg.appDownload.description"
+      >
+      <LandingAppBadges
+      :app-store-url="cfg.appDownload.appStoreUrl"
+      :google-play-url="cfg.appDownload.googlePlayUrl"
+      />
+    </UPageSection>
+
+    <!-- FAQ -->
+    <UPageSection
+    id="faq"
+    :headline="cfg.faq.headline"
+    :title="cfg.faq.title"
+    >
+      <UAccordion
+      :items="cfg.faq.items"
+      class="max-w-2xl mx-auto"
+      />
+    </UPageSection>
+
+    <!-- FINAL CTA -->
     <UPageSection>
       <UPageCTA
-        title="Ready to build your next Nuxt app?"
-        description="Join thousands of developers building with Nuxt and Nuxt UI. Get this template and start shipping today."
-        variant="subtle"
-        :links="[{
-          label: 'Start building',
-          to: 'https://ui.nuxt.com/docs/getting-started/installation/nuxt',
-          target: '_blank',
-          trailingIcon: 'i-lucide-arrow-right',
-          color: 'neutral'
-        }, {
-          label: 'View on GitHub',
-          to: 'https://github.com/nuxt-ui-templates/starter',
-          target: '_blank',
-          icon: 'i-simple-icons-github',
-          color: 'neutral',
-          variant: 'outline'
-        }]"
+      :title="cfg.finalCta.title"
+      :description="cfg.finalCta.description"
+      variant="subtle"
+      :links="[
+        {
+          label: cfg.finalCta.primaryCta.label,
+            to: cfg.finalCta.primaryCta.to,
+            trailingIcon: 'i-lucide-arrow-right',
+            color: 'neutral' as const
+          },
+          ...(cfg.finalCta.secondaryCta ? [{
+            label: cfg.finalCta.secondaryCta.label,
+            to: cfg.finalCta.secondaryCta.to,
+            icon: cfg.finalCta.secondaryCta.icon,
+            color: 'neutral' as const,
+            variant: 'outline' as const
+          }] : [])
+        ]"
       />
     </UPageSection>
   </div>
 </template>
+
+          <script setup lang="ts">
+          import { landingConfig } from '~/landing.config'
+          
+          const cfg = landingConfig
+          </script>

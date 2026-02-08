@@ -1,26 +1,28 @@
 <script setup>
+import { landingConfig } from '~/landing.config'
+
 useHead({
   meta: [
     { name: 'viewport', content: 'width=device-width, initial-scale=1' }
   ],
   link: [
-    { rel: 'icon', href: '/favicon.ico' }
+    { rel: 'icon', href: '/favicon.ico' },
+    { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+    { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+    { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap' }
   ],
   htmlAttrs: {
-    lang: 'en'
+    lang: 'en',
+    class: 'scroll-smooth'
   }
 })
 
-const title = 'Nuxt Starter Template'
-const description = 'A production-ready starter template powered by Nuxt UI. Build beautiful, accessible, and performant applications in minutes, not hours.'
-
 useSeoMeta({
-  title,
-  description,
-  ogTitle: title,
-  ogDescription: description,
-  ogImage: 'https://ui.nuxt.com/assets/templates/nuxt/starter-light.png',
-  twitterImage: 'https://ui.nuxt.com/assets/templates/nuxt/starter-light.png',
+  title: landingConfig.seo.title,
+  description: landingConfig.seo.description,
+  ogTitle: landingConfig.seo.title,
+  ogDescription: landingConfig.seo.description,
+  ogImage: landingConfig.seo.ogImage,
   twitterCard: 'summary_large_image'
 })
 </script>
@@ -33,19 +35,24 @@ useSeoMeta({
           <AppLogo class="w-auto h-6 shrink-0" />
         </NuxtLink>
 
-        <TemplateMenu />
+        <LandingNavLinks />
       </template>
 
       <template #right>
         <UColorModeButton />
 
         <UButton
-          to="https://github.com/nuxt-ui-templates/starter"
-          target="_blank"
-          icon="i-simple-icons-github"
-          aria-label="GitHub"
+          label="Sign in"
+          :to="landingConfig.auth.loginUrl"
           color="neutral"
           variant="ghost"
+          size="sm"
+        />
+
+        <UButton
+          label="Get started"
+          :to="landingConfig.auth.registerUrl"
+          size="sm"
         />
       </template>
     </UHeader>
@@ -54,24 +61,28 @@ useSeoMeta({
       <NuxtPage />
     </UMain>
 
-    <USeparator icon="i-simple-icons-nuxtdotjs" />
-
     <UFooter>
       <template #left>
-        <p class="text-sm text-muted">
-          Built with Nuxt UI • © {{ new Date().getFullYear() }}
+        <p class="text-sm text-(--ui-text-muted)">
+          {{ landingConfig.footer.copyright }}
         </p>
       </template>
 
+      <template #center>
+        <nav class="flex flex-wrap items-center gap-4">
+          <NuxtLink
+            v-for="link in landingConfig.footer.links"
+            :key="link.to"
+            :to="link.to"
+            class="text-sm text-(--ui-text-muted) hover:text-(--ui-text) transition-colors cursor-pointer"
+          >
+            {{ link.label }}
+          </NuxtLink>
+        </nav>
+      </template>
+
       <template #right>
-        <UButton
-          to="https://github.com/nuxt-ui-templates/starter"
-          target="_blank"
-          icon="i-simple-icons-github"
-          aria-label="GitHub"
-          color="neutral"
-          variant="ghost"
-        />
+        <LandingSocialLinks :links="landingConfig.footer.socialLinks" />
       </template>
     </UFooter>
   </UApp>

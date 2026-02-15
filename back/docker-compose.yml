@@ -17,7 +17,11 @@ services:
 
     keycloak:
         container_name: ${DOCKER_KEYCLOAK_CONTAINER_NAME:-keycloak}
-        image: quay.io/keycloak/keycloak:26.0.7
+        build:
+            context: .
+            dockerfile: keycloak/Dockerfile
+            additional_contexts:
+                theme: ../keycloak-theme/dist_keycloak
         restart: always
         ports:
             - '${KEYCLOAK_PORT:-8081}:8080'
@@ -32,13 +36,14 @@ services:
             KC_DB_USERNAME: ${POSTGRES_USER}
             KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
 
-            # Keycloak configuration (v2 hostname options)
-            KC_HOSTNAME: ${KEYCLOAK_HOSTNAME:-localhost}
-            KC_HOSTNAME_PORT: ${KEYCLOAK_PORT:-8081}
-            KC_HOSTNAME_STRICT_HTTPS: false
+            # Keycloak hostname configuration (v2)
+            KC_HOSTNAME: http://localhost:${KEYCLOAK_PORT:-8081}
             KC_HTTP_ENABLED: true
             KC_HEALTH_ENABLED: true
             KC_METRICS_ENABLED: true
+
+            # Import strategy: only import realm if it doesn't exist yet
+            KC_SPI_IMPORT_DIR_STRATEGY: IGNORE_EXISTING
 
             # Logging
             KC_LOG_LEVEL: ${KEYCLOAK_LOG_LEVEL:-INFO}
@@ -47,7 +52,6 @@ services:
         depends_on:
             - database
         volumes:
-            - keycloak_data:/opt/keycloak/data
             - ./keycloak/template-realm.json:/opt/keycloak/data/import/template-realm.json:ro
         networks:
             - app-network
@@ -92,6 +96,7 @@ services:
             SPRING_JPA_HIBERNATE_DDL_AUTO: validate
             SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.PostgreSQLDialect
             KEYCLOAK_INTERNAL_URL: http://keycloak:8080
+            KEYCLOAK_EXTERNAL_URL: http://localhost:${KEYCLOAK_PORT:-8081}
             KEYCLOAK_REALM_NAME: ${KEYCLOAK_REALM_NAME:-template-realm}
             KEYCLOAK_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
             KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
@@ -113,7 +118,6 @@ services:
 
 volumes:
     pgdata:
-    keycloak_data:
     maven-target:
     maven-cache:
 

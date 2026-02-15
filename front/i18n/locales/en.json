@@ -143,5 +143,41 @@
       "title": "AppName - Your tagline",
       "description": "A short SEO description of your application."
     }
+  },
+
+  "auth": {
+    "callback": {
+      "processing": "Signing you in...",
+      "error": "Authentication failed",
+      "redirecting": "Redirecting you back to the homepage..."
+    },
+    "menu": {
+      "dashboard": "Dashboard",
+      "settings": "Settings",
+      "logout": "Log out"
+    }
+  },
+
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome back, {name}!",
+    "cards": {
+      "profile": {
+        "title": "Profile",
+        "description": "View and edit your profile information."
+      },
+      "settings": {
+        "title": "Settings",
+        "description": "Manage your account preferences."
+      },
+      "activity": {
+        "title": "Activity",
+        "description": "View your recent activity and history."
+      }
+    },
+    "seo": {
+      "title": "Dashboard - AppName",
+      "description": "Your personal dashboard."
+    }
   }
 }

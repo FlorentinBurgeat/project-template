@@ -14,10 +14,19 @@ export default defineNuxtConfig({
     enabled: true
   },
 
+  runtimeConfig: {
+    public: {
+      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
+    }
+  },
+
   css: ['~/assets/css/main.css'],
 
   routeRules: {
-    '/': { prerender: true }
+    '/': { prerender: true },
+    '/api/**': {
+      proxy: { to: (process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:8080') + '/api/**' }
+    }
   },
 
   compatibilityDate: '2025-01-15',

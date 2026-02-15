@@ -20,7 +20,7 @@
   "refreshTokenMaxReuse": 0,
   "revokeRefreshToken": false,
 
-  "loginTheme": "keycloak",
+  "loginTheme": "project-template-theme",
   "accountTheme": "keycloak",
   "adminTheme": "keycloak",
   "emailTheme": "keycloak",

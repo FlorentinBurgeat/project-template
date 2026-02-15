@@ -48,6 +48,7 @@ class SecurityConfig {
                     // Public endpoints - authentication flow
                     .requestMatchers(
                         "/api/auth/login",
+                        "/api/auth/register",
                         "/api/auth/callback",
                         "/api/auth/refresh",
                         "/api/auth/logout",

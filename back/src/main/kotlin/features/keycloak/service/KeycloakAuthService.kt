@@ -23,6 +23,7 @@ import org.springframework.web.client.HttpClientErrorException
 @Service
 class KeycloakAuthService(
     @Value("\${keycloak.url}") private val keycloakUrl: String,
+    @Value("\${keycloak.external-url}") private val keycloakExternalUrl: String,
     @Value("\${keycloak.realm.name}") private val realmName: String,
     @Value("\${keycloak.backend.client-id}") private val clientId: String,
     @Value("\${keycloak.backend.client-secret}") private val clientSecret: String,
@@ -140,7 +141,7 @@ class KeycloakAuthService(
      * @return The complete login URL
      */
     fun getLoginUrl(redirectUri: String): String {
-        val authEndpoint = "$keycloakUrl/realms/$realmName/protocol/openid-connect/auth"
+        val authEndpoint = "$keycloakExternalUrl/realms/$realmName/protocol/openid-connect/auth"
 
         return buildString {
             append(authEndpoint)
@@ -158,7 +159,7 @@ class KeycloakAuthService(
      * @return The complete registration URL
      */
     fun getRegistrationUrl(redirectUri: String): String {
-        val authEndpoint = "$keycloakUrl/realms/$realmName/protocol/openid-connect/registrations"
+        val authEndpoint = "$keycloakExternalUrl/realms/$realmName/protocol/openid-connect/registrations"
 
         return buildString {
             append(authEndpoint)

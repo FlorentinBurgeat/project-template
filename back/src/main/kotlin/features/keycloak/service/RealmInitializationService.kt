@@ -105,7 +105,7 @@ class RealmInitializationService(
             revokeRefreshToken = false
 
             // Themes
-            loginTheme = "keycloak"
+            loginTheme = "project-template-theme"
             accountTheme = "keycloak"
             adminTheme = "keycloak"
             emailTheme = "keycloak"

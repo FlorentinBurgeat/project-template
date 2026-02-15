@@ -143,5 +143,41 @@
       "title": "NomApp - Votre slogan",
       "description": "Une courte description SEO de votre application."
     }
+  },
+
+  "auth": {
+    "callback": {
+      "processing": "Connexion en cours...",
+      "error": "L'authentification a échoué",
+      "redirecting": "Redirection vers la page d'accueil..."
+    },
+    "menu": {
+      "dashboard": "Tableau de bord",
+      "settings": "Paramètres",
+      "logout": "Se déconnecter"
+    }
+  },
+
+  "dashboard": {
+    "title": "Tableau de bord",
+    "welcome": "Bienvenue, {name} !",
+    "cards": {
+      "profile": {
+        "title": "Profil",
+        "description": "Consultez et modifiez vos informations de profil."
+      },
+      "settings": {
+        "title": "Paramètres",
+        "description": "Gérez les préférences de votre compte."
+      },
+      "activity": {
+        "title": "Activité",
+        "description": "Consultez votre activité récente et votre historique."
+      }
+    },
+    "seo": {
+      "title": "Tableau de bord - NomApp",
+      "description": "Votre tableau de bord personnel."
+    }
   }
 }

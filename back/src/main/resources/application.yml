@@ -48,6 +48,7 @@ management:
 # Keycloak Configuration
 keycloak:
   url: ${KEYCLOAK_INTERNAL_URL:http://localhost:8081}
+  external-url: ${KEYCLOAK_EXTERNAL_URL:http://localhost:8081}
   realm:
     name: ${KEYCLOAK_REALM_NAME:template-realm}
   admin:

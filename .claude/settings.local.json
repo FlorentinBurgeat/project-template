@@ -17,7 +17,12 @@
       "mcp__nuxt-ui-remote__get-component",
       "mcp__nuxt-ui-remote__get-example",
       "mcp__nuxt-ui-remote__get-component-metadata",
-      "Bash(npx nuxi build)"
+      "Bash(npx nuxi build)",
+      "mcp__context7__resolve-library-id",
+      "mcp__nuxt-ui-remote__search-components-by-category",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(npm run build-keycloak-theme:*)"
     ]
   }
 }

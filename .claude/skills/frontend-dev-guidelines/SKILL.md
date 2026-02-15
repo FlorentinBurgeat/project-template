@@ -108,8 +108,9 @@ import type { User, UserDTO } from '@/model/User'
 **Key Concepts:**
 - Lazy load heavy components (DataGrid, charts, editors)
 - Use conditional rendering (`v-if`, `v-show`) for loading states
-- Component structure: `<script setup>` → `<template>` → `<style scoped>`
+- Component structure: `<template>` → `<style scoped>` → `<script setup>`
 - Extract logic into composables for reusability
+- Never put arrays/objects directly in template - use computed/constants
 
 **[📖 Complete Guide: resources/component-patterns.md](resources/component-patterns.md)**
 
@@ -315,6 +316,31 @@ const routes = [
 ## Modern Vue 3 Component Template (Quick Copy)
 
 ```vue
+<template>
+  <div class="p-4">
+    <div v-if="isLoading" class="flex justify-center p-8">
+      <span>Loading...</span>
+    </div>
+
+    <div v-else-if="error" class="text-red-500">
+      Error loading data
+    </div>
+
+    <Card v-else class="p-6">
+      <CardContent>
+        <h2 class="text-xl font-bold mb-4">{{ displayValue }}</h2>
+        <Button @click="handleAction">
+          Action
+        </Button>
+      </CardContent>
+    </Card>
+  </div>
+</template>
+
+<style scoped>
+/* Optional scoped styles if needed */
+</style>
+
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
@@ -359,31 +385,6 @@ const handleAction = () => {
   emit('action')
 }
 </script>
-
-<template>
-  <div class="p-4">
-    <div v-if="isLoading" class="flex justify-center p-8">
-      <span>Loading...</span>
-    </div>
-
-    <div v-else-if="error" class="text-red-500">
-      Error loading data
-    </div>
-
-    <Card v-else class="p-6">
-      <CardContent>
-        <h2 class="text-xl font-bold mb-4">{{ displayValue }}</h2>
-        <Button @click="handleAction">
-          Action
-        </Button>
-      </CardContent>
-    </Card>
-  </div>
-</template>
-
-<style scoped>
-/* Optional scoped styles if needed */
-</style>
 ```
 
 For complete examples, see [resources/complete-examples.md](resources/complete-examples.md)

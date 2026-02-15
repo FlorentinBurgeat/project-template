@@ -135,11 +135,135 @@ function handleSubmit() {
 
 ---
 
+## Template Best Practices
+
+### Never Put Arrays/Objects Directly in Templates
+
+**❌ AVOID** - Array/object literals in template attributes:
+
+```vue
+<template>
+  <!-- Bad: inline array -->
+  <MyComponent :items="[
+    { id: 1, name: 'Item 1' },
+    { id: 2, name: 'Item 2' }
+  ]" />
+
+  <!-- Bad: inline object -->
+  <Button :config="{
+    color: 'primary',
+    size: 'large',
+    disabled: false
+  }" />
+</template>
+```
+
+**✅ PREFER** - Declare in script as constants or computed:
+
+```vue
+<template>
+  <!-- Good: reference from script -->
+  <MyComponent :items="items" />
+  <Button :config="buttonConfig" />
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+
+// Static data - use const
+const items = [
+  { id: 1, name: 'Item 1' },
+  { id: 2, name: 'Item 2' }
+]
+
+const buttonConfig = {
+  color: 'primary',
+  size: 'large',
+  disabled: false
+}
+
+// Dynamic data - use computed
+const dynamicItems = computed(() => [
+  { id: 1, name: currentName.value },
+  { id: 2, name: 'Item 2' }
+])
+</script>
+```
+
+**Why this matters:**
+
+1. **Readability** - Templates stay clean and scannable
+2. **Maintainability** - Data structures are easier to find and modify
+3. **TypeScript** - Proper typing and intellisense support
+4. **Testing** - Can unit test data structures independently
+5. **Performance** - Prevents unnecessary re-creation on re-renders
+6. **Reusability** - Can export and share data structures
+
+**Rule of thumb:** If an attribute value is more than one line, move it to script section.
+
+---
+
+## SFC (Single File Component) Order
+
+### Always Use This Order
+
+```vue
+<template>
+  <!-- Component markup -->
+</template>
+
+<style scoped>
+/* Optional component-specific styles */
+</style>
+
+<script setup lang="ts">
+// Component logic
+</script>
+```
+
+**Why template-first:**
+- Easier to scan and understand component at a glance
+- This is the Vue.js community standard
+- Most linters and formatters expect this order
+- Styles are optional and sit between template and script
+
+---
+
 ## Component Structure Template
 
 ### Recommended Order
 
 ```vue
+<template>
+  <div class="p-4">
+    <div v-if="isLoading" class="flex justify-center p-8">
+      <span>Loading...</span>
+    </div>
+
+    <div v-else-if="error" class="text-red-500">
+      Error: {{ error.message }}
+    </div>
+
+    <Card v-else class="p-6">
+      <h2 class="text-xl font-bold mb-4">My Component</h2>
+
+      <div class="space-y-4">
+        <div v-for="item in filteredData" :key="item.id">
+          {{ item.name }}
+        </div>
+      </div>
+
+      <Button @click="handleSave" class="mt-4">
+        Save
+      </Button>
+    </Card>
+  </div>
+</template>
+
+<style scoped>
+/* Optional scoped styles */
+</style>
+
 <script setup lang="ts">
 /**
  * Component description

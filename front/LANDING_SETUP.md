@@ -6,8 +6,8 @@ This document is intended for **AI agents** and developers who need to customize
 
 ## Quick Start
 
-1. Open `app/landing.config.ts`
-2. Replace all placeholder values with your project's content
+1. Edit text content in `locales/en.json` (and `fr.json` for French)
+2. Update structural config in `app/landing.config.ts` (icons, URLs)
 3. Replace images in `public/images/`
 4. Update `app/components/AppLogo.vue` with your logo SVG
 5. Choose your brand color (see Color Customization below)
@@ -35,8 +35,8 @@ Change the primary color in **two files**:
 export default defineAppConfig({
   ui: {
     colors: {
-      primary: 'sky',    // ← Replace 'green' with chosen color
-      neutral: 'slate'
+      primary: "sky", // ← Replace 'green' with chosen color
+      neutral: "slate"
     }
   }
 })
@@ -50,57 +50,71 @@ Replace the `--color-green-*` palette with the chosen color's Tailwind palette. 
 
 ```css
 @theme static {
-  --font-sans: 'Outfit', sans-serif;
+  --font-sans: "Outfit", sans-serif;
 
-  --color-sky-50: #F0F9FF;
-  --color-sky-100: #E0F2FE;
-  --color-sky-200: #BAE6FD;
-  --color-sky-300: #7DD3FC;
-  --color-sky-400: #38BDF8;
-  --color-sky-500: #0EA5E9;
-  --color-sky-600: #0284C7;
-  --color-sky-700: #0369A1;
+  --color-sky-50: #f0f9ff;
+  --color-sky-100: #e0f2fe;
+  --color-sky-200: #bae6fd;
+  --color-sky-300: #7dd3fc;
+  --color-sky-400: #38bdf8;
+  --color-sky-500: #0ea5e9;
+  --color-sky-600: #0284c7;
+  --color-sky-700: #0369a1;
   --color-sky-800: #075985;
-  --color-sky-900: #0C4A6E;
-  --color-sky-950: #082F49;
+  --color-sky-900: #0c4a6e;
+  --color-sky-950: #082f49;
 }
 ```
 
 Reference for all Tailwind color palettes: https://tailwindcss.com/docs/colors
 
-### Step 3: Update landing config
+### Step 3: Update landing content
 
-Edit `app/landing.config.ts` — replace every placeholder string:
+#### 3a. Edit text content in i18n locale files
 
-| Field | What to replace |
-|---|---|
-| `appName` | Your application name |
-| `tagline` | Short tagline for branding |
-| `hero.title` | Main headline visitors see first |
-| `hero.description` | 1-2 sentence value proposition |
-| `hero.primaryCta` | Main button (label + destination URL) |
-| `valueProposition.*` | Problem/solution pitch |
-| `features.items[]` | 3-6 features with icons, titles, descriptions |
-| `testimonials.items[]` | 2-4 real testimonials |
-| `appDownload.appStoreUrl` | App Store link (set to `''` to hide) |
-| `appDownload.googlePlayUrl` | Google Play link (set to `''` to hide) |
-| `faq.items[]` | 3-6 common questions and answers |
-| `finalCta.*` | Conversion call-to-action text |
-| `footer.copyright` | Copyright notice |
-| `footer.socialLinks[]` | Social media links and icons |
-| `seo.*` | Page title, description, OG image path |
-| `auth.loginUrl` | Keycloak login redirect |
-| `auth.registerUrl` | Keycloak register redirect |
+Edit `i18n/locales/en.json` — replace every placeholder string:
+
+| Field                              | What to replace                     |
+| ---------------------------------- | ----------------------------------- |
+| `landing.appName`                  | Your application name               |
+| `landing.tagline`                  | Short tagline for branding          |
+| `landing.hero.title`               | Main headline visitors see first    |
+| `landing.hero.description`         | 1-2 sentence value proposition      |
+| `landing.hero.primaryCta`          | Main button label                   |
+| `landing.valueProposition.*`       | Problem/solution pitch              |
+| `landing.features.items[].title`   | Feature titles and descriptions     |
+| `landing.testimonials.items[]`     | Testimonial names, roles, quotes    |
+| `landing.faq.items[]`              | Questions and answers               |
+| `landing.finalCta.*`               | Conversion call-to-action text      |
+| `landing.footer.copyright`         | Copyright notice                    |
+| `landing.seo.*`                    | Page title, description             |
+
+If you want to support French, also edit `i18n/locales/fr.json` with French translations.
+
+#### 3b. Update structural config
+
+Edit `app/landing.config.ts` — update the `landingStructure` object:
+
+| Field                          | What to update                      |
+| ------------------------------ | ----------------------------------- |
+| `featureIcons[]`               | Icon names for features             |
+| `valuePropositionIcons[]`      | Icon names for value props          |
+| `testimonialAvatars[]`         | Avatar image URLs                   |
+| `appDownload.appStoreUrl`      | App Store link (set to `''` to hide)|
+| `appDownload.googlePlayUrl`    | Google Play link                    |
+| `socialLinks[]`                | Social media URLs and icons         |
+| `seo.ogImage`                  | OG image path                       |
+| `auth.*`                       | Keycloak URLs                       |
 
 ### Step 4: Replace visual assets
 
-| Asset | Location | Size/Format |
-|---|---|---|
-| Logo SVG | `app/components/AppLogo.vue` | Inline SVG component |
-| App Store badge | `public/images/badge-app-store.svg` | 135x40 SVG |
-| Google Play badge | `public/images/badge-google-play.svg` | 135x40 SVG |
-| OG Image | `public/og-image.png` | 1200x630 PNG |
-| Favicon | `public/favicon.ico` | 32x32 ICO |
+| Asset             | Location                              | Size/Format          |
+| ----------------- | ------------------------------------- | -------------------- |
+| Logo SVG          | `app/components/AppLogo.vue`          | Inline SVG component |
+| App Store badge   | `public/images/badge-app-store.svg`   | 135x40 SVG           |
+| Google Play badge | `public/images/badge-google-play.svg` | 135x40 SVG           |
+| OG Image          | `public/og-image.png`                 | 1200x630 PNG         |
+| Favicon           | `public/favicon.ico`                  | 32x32 ICO            |
 
 ### Step 5: Optional font change
 
@@ -219,3 +233,122 @@ Icons use Iconify names with the `i-` prefix. Browse available icons:
 - **Lucide** (recommended for UI): `i-lucide-*` — https://lucide.dev/icons/
 - **Simple Icons** (for brands): `i-simple-icons-*` — https://simpleicons.org/
 - **Heroicons**: `i-heroicons-*`
+
+---
+
+## Internationalization (i18n)
+
+The landing page now uses **@nuxtjs/i18n** for multi-language support. All text content is stored in JSON locale files instead of `landing.config.ts`.
+
+### How it Works
+
+1. **Text content** is stored in `i18n/locales/*.json` files (one per language)
+2. **Structure, icons, and URLs** are stored in `landing.config.ts` (in `landingStructure`)
+3. Components use the `useLandingConfig()` composable which merges structure + translations
+4. Users can switch languages using the `<LanguageSwitcher>` component in the header
+
+### File Structure
+
+```
+locales/
+├── en.json         ← English translations
+└── fr.json         ← French translations
+
+i18n.config.ts      ← i18n configuration
+landing.config.ts   ← Structural config (icons, URLs, arrays)
+```
+
+### Editing Translations
+
+To update landing page text in English, edit `locales/en.json`:
+
+```json
+{
+  "landing": {
+    "appName": "Your App Name",
+    "hero": {
+      "title": "Your Hero Title",
+      "description": "Your description..."
+    }
+  }
+}
+```
+
+The structure follows the same hierarchy as the original `landing.config.ts`, but contains only translatable text.
+
+### Adding a New Language
+
+1. Create a new locale file: `locales/de.json` (for German, for example)
+2. Copy the structure from `en.json` and translate all values
+3. Add the locale to `nuxt.config.ts`:
+
+```typescript
+i18n: {
+  locales: [
+    { code: 'en', name: 'English', file: 'en.json', language: 'en-US' },
+    { code: 'fr', name: 'Français', file: 'fr.json', language: 'fr-FR' },
+    { code: 'de', name: 'Deutsch', file: 'de.json', language: 'de-DE' }
+  ]
+}
+```
+
+4. Update the `LanguageSwitcher.vue` component to add the flag emoji:
+
+```typescript
+function getLocaleIcon(code: string) {
+  const icons: Record<string, string> = {
+    en: "🇬🇧",
+    fr: "🇫🇷",
+    de: "🇩🇪"  // Add new locale icon
+  }
+  return icons[code] || "🌐"
+}
+```
+
+### Changing Default Language
+
+Edit `nuxt.config.ts`:
+
+```typescript
+i18n: {
+  defaultLocale: 'en',  // Change to 'fr', 'de', etc.
+  // ...
+}
+```
+
+### Using Translations in Components
+
+**In templates** (recommended):
+```vue
+<template>
+  <h1>{{ $t('landing.hero.title') }}</h1>
+</template>
+```
+
+**In script setup**:
+```vue
+<script setup>
+const { t } = useI18n()
+const title = t('landing.hero.title')
+</script>
+```
+
+**Using the landing config composable**:
+```vue
+<script setup>
+import { useLandingConfig } from '~/landing.config'
+
+const cfg = useLandingConfig()
+// cfg.value.hero.title is now reactive and translated
+</script>
+```
+
+### Removing i18n
+
+If you only need one language:
+
+1. Remove `@nuxtjs/i18n` from `nuxt.config.ts` modules
+2. Move all text from `en.json` back into `landing.config.ts` as hardcoded values
+3. Replace `useLandingConfig()` with a simple export of the config object
+4. Remove the `<LanguageSwitcher>` component from `app.vue`
+5. Run `pnpm remove @nuxtjs/i18n`

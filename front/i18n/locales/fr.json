@@ -1,0 +1,147 @@
+{
+  "landing": {
+    "appName": "NomApp",
+    "tagline": "Votre slogan ici",
+    "description": "Une courte description de ce que fait votre application.",
+
+    "nav": {
+      "features": "Fonctionnalités",
+      "testimonials": "Témoignages",
+      "download": "Télécharger",
+      "faq": "FAQ"
+    },
+
+    "header": {
+      "signIn": "Se connecter",
+      "getStarted": "Commencer"
+    },
+
+    "hero": {
+      "headline": "Maintenant disponible",
+      "title": "La plateforme moderne pour [votre cas d'usage]",
+      "description": "Remplacez ceci par une description convaincante de votre produit. Expliquez la proposition de valeur principale en une ou deux phrases.",
+      "primaryCta": "Commencer",
+      "secondaryCta": "En savoir plus"
+    },
+
+    "valueProposition": {
+      "headline": "Pourquoi nous choisir",
+      "title": "Résoudre [problème] sans [point douloureux]",
+      "description": "Décrivez le problème principal auquel vos utilisateurs sont confrontés et comment votre produit le résout différemment.",
+      "points": {
+        "0": "Économisez des heures chaque semaine sur [tâche]",
+        "1": "Augmentez [métrique] de manière significative",
+        "2": "Niveau entreprise [avantage]"
+      }
+    },
+
+    "features": {
+      "headline": "Fonctionnalités",
+      "title": "Tout ce dont vous avez besoin pour [atteindre l'objectif]",
+      "description": "Un ensemble complet d'outils conçus pour [public cible].",
+      "items": {
+        "0": {
+          "title": "Fonctionnalité Un",
+          "description": "Brève description de cette fonctionnalité et de son avantage pour l'utilisateur."
+        },
+        "1": {
+          "title": "Fonctionnalité Deux",
+          "description": "Brève description de cette fonctionnalité et de son avantage pour l'utilisateur."
+        },
+        "2": {
+          "title": "Fonctionnalité Trois",
+          "description": "Brève description de cette fonctionnalité et de son avantage pour l'utilisateur."
+        },
+        "3": {
+          "title": "Fonctionnalité Quatre",
+          "description": "Brève description de cette fonctionnalité et de son avantage pour l'utilisateur."
+        },
+        "4": {
+          "title": "Fonctionnalité Cinq",
+          "description": "Brève description de cette fonctionnalité et de son avantage pour l'utilisateur."
+        },
+        "5": {
+          "title": "Fonctionnalité Six",
+          "description": "Brève description de cette fonctionnalité et de son avantage pour l'utilisateur."
+        }
+      }
+    },
+
+    "testimonials": {
+      "headline": "Témoignages",
+      "title": "Fait confiance par des équipes du monde entier",
+      "items": {
+        "0": {
+          "name": "Jane Doe",
+          "role": "PDG chez Entreprise",
+          "quote": "Ce produit a transformé notre façon de gérer [processus]. Fortement recommandé."
+        },
+        "1": {
+          "name": "John Smith",
+          "role": "CTO chez Startup",
+          "quote": "Nous avons réduit notre [métrique] de 40% au cours du premier mois d'utilisation de cette plateforme."
+        },
+        "2": {
+          "name": "Alice Johnson",
+          "role": "Chef de produit",
+          "quote": "Le meilleur outil que nous ayons adopté cette année. Simple, puissant et fiable."
+        }
+      }
+    },
+
+    "appDownload": {
+      "headline": "Application mobile",
+      "title": "Emportez-le partout",
+      "description": "Accédez à votre espace de travail en déplacement. Disponible sur iOS et Android."
+    },
+
+    "faq": {
+      "headline": "FAQ",
+      "title": "Questions fréquemment posées",
+      "items": {
+        "0": {
+          "label": "Qu'est-ce que NomApp?",
+          "content": "Remplacez par votre réponse décrivant ce que fait l'application."
+        },
+        "1": {
+          "label": "Combien ça coûte?",
+          "content": "Remplacez par vos informations de tarification."
+        },
+        "2": {
+          "label": "Y a-t-il un essai gratuit?",
+          "content": "Remplacez par votre politique d'essai."
+        },
+        "3": {
+          "label": "Comment commencer?",
+          "content": "Remplacez par les étapes d'intégration."
+        }
+      }
+    },
+
+    "finalCta": {
+      "title": "Prêt à commencer?",
+      "description": "Rejoignez des milliers d'utilisateurs qui font déjà confiance à NomApp. Créez votre compte gratuit aujourd'hui.",
+      "primaryCta": "Créer un compte gratuit",
+      "secondaryCta": "Contacter les ventes"
+    },
+
+    "footer": {
+      "copyright": "© 2026 NomApp. Tous droits réservés.",
+      "links": {
+        "privacy": "Politique de confidentialité",
+        "terms": "Conditions d'utilisation",
+        "contact": "Contact"
+      },
+      "socialLinks": {
+        "twitter": "X (Twitter)",
+        "github": "GitHub",
+        "linkedin": "LinkedIn"
+      }
+    },
+
+    "seo": {
+      "title": "NomApp - Votre slogan",
+      "description": "Une courte description SEO de votre application."
+    }
+  }
+}

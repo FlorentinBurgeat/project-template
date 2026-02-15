@@ -1,10 +1,3 @@
-<script setup lang="ts">
-defineProps<{
-  appStoreUrl: string
-  googlePlayUrl: string
-}>()
-</script>
-
 <template>
   <div class="flex flex-wrap items-center gap-4">
     <NuxtLink
@@ -20,7 +13,7 @@ defineProps<{
         alt="Download on the App Store"
         class="h-12"
         loading="lazy"
-      >
+      />
     </NuxtLink>
     <NuxtLink
       v-if="googlePlayUrl"
@@ -35,7 +28,14 @@ defineProps<{
         alt="Get it on Google Play"
         class="h-12"
         loading="lazy"
-      >
+      />
     </NuxtLink>
   </div>
 </template>
+
+<script setup lang="ts">
+defineProps<{
+  appStoreUrl: string
+  googlePlayUrl: string
+}>()
+</script>

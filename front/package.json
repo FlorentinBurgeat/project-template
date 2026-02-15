@@ -8,8 +8,8 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
-    "fmt": "prettier --write",
-    "fmt:check": "prettier --check",
+    "fmt": "prettier \"app/**/*.{ts, .js, .json, .vue}\" -w --config .prettierrc",
+    "fmt:check": "prettier \"app/**/*.{ts, .js, .json, .vue}\" --check --config .prettierrc",
     "typecheck": "nuxt typecheck",
     "test": "vitest",
     "test:watch": "vitest --watch",
@@ -26,6 +26,7 @@
     "@nuxt/image": "2.0.0",
     "@nuxt/test-utils": "3.23.0",
     "@nuxt/ui": "^4.4.0",
+    "@nuxtjs/i18n": "10.2.3",
     "nuxt": "^4.2.2",
     "tailwindcss": "^4.1.18"
   },

@@ -1,11 +1,3 @@
-<script setup lang="ts">
-import type { LandingSocialLink } from '~/landing.config'
-
-defineProps<{
-  links: LandingSocialLink[]
-}>()
-</script>
-
 <template>
   <div class="flex items-center gap-2">
     <UButton
@@ -21,3 +13,11 @@ defineProps<{
     />
   </div>
 </template>
+
+<script setup lang="ts">
+import type { LandingSocialLink } from '~/landing.config'
+
+defineProps<{
+  links: LandingSocialLink[]
+}>()
+</script>

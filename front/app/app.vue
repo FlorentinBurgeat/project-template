@@ -1,32 +1,3 @@
-<script setup>
-import { landingConfig } from '~/landing.config'
-
-useHead({
-  meta: [
-    { name: 'viewport', content: 'width=device-width, initial-scale=1' }
-  ],
-  link: [
-    { rel: 'icon', href: '/favicon.ico' },
-    { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-    { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
-    { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap' }
-  ],
-  htmlAttrs: {
-    lang: 'en',
-    class: 'scroll-smooth'
-  }
-})
-
-useSeoMeta({
-  title: landingConfig.seo.title,
-  description: landingConfig.seo.description,
-  ogTitle: landingConfig.seo.title,
-  ogDescription: landingConfig.seo.description,
-  ogImage: landingConfig.seo.ogImage,
-  twitterCard: 'summary_large_image'
-})
-</script>
-
 <template>
   <UApp>
     <UHeader>
@@ -39,19 +10,20 @@ useSeoMeta({
       </template>
 
       <template #right>
+        <LanguageSwitcher />
         <UColorModeButton />
 
         <UButton
-          label="Sign in"
-          :to="landingConfig.auth.loginUrl"
+          :label="$t('landing.header.signIn')"
+          :to="landingStructure.auth.loginUrl"
           color="neutral"
           variant="ghost"
           size="sm"
         />
 
         <UButton
-          label="Get started"
-          :to="landingConfig.auth.registerUrl"
+          :label="$t('landing.header.getStarted')"
+          :to="landingStructure.auth.registerUrl"
           size="sm"
         />
       </template>
@@ -64,26 +36,58 @@ useSeoMeta({
     <UFooter>
       <template #left>
         <p class="text-sm text-(--ui-text-muted)">
-          {{ landingConfig.footer.copyright }}
+          {{ $t('landing.footer.copyright') }}
         </p>
       </template>
 
       <template #center>
         <nav class="flex flex-wrap items-center gap-4">
           <NuxtLink
-            v-for="link in landingConfig.footer.links"
+            v-for="(link, key) in landingStructure.footerLinks"
             :key="link.to"
             :to="link.to"
             class="text-sm text-(--ui-text-muted) hover:text-(--ui-text) transition-colors cursor-pointer"
           >
-            {{ link.label }}
+            {{ $t(`landing.footer.links.${['privacy', 'terms', 'contact'][key]}`) }}
           </NuxtLink>
         </nav>
       </template>
 
       <template #right>
-        <LandingSocialLinks :links="landingConfig.footer.socialLinks" />
+        <LandingSocialLinks :links="landingStructure.socialLinks" />
       </template>
     </UFooter>
   </UApp>
 </template>
+
+<script setup>
+import { landingStructure } from '~/landing.config'
+
+const { t, locale } = useI18n()
+
+useHead({
+  meta: [{ name: 'viewport', content: 'width=device-width, initial-scale=1' }],
+  link: [
+    { rel: 'icon', href: '/favicon.ico' },
+    { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+    { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+    {
+      rel: 'stylesheet',
+      href: 'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap'
+    }
+  ],
+  htmlAttrs: {
+    lang: locale.value,
+    class: 'scroll-smooth'
+  }
+})
+
+useSeoMeta({
+  title: () => t('landing.seo.title'),
+  description: () => t('landing.seo.description'),
+  ogTitle: () => t('landing.seo.title'),
+  ogDescription: () => t('landing.seo.description'),
+  ogImage: landingStructure.seo.ogImage,
+  twitterCard: 'summary_large_image'
+})
+</script>

@@ -6,7 +6,8 @@ export default defineNuxtConfig({
     '@nuxt/a11y',
     '@nuxt/hints',
     '@nuxt/image',
-    '@nuxt/test-utils'
+    '@nuxt/test-utils',
+    '@nuxtjs/i18n'
   ],
 
   devtools: {
@@ -23,10 +24,19 @@ export default defineNuxtConfig({
 
   eslint: {
     config: {
-      stylistic: {
-        commaDangle: 'never',
-        braceStyle: '1tbs'
-      }
+      stylistic: false // Disabled - using oxfmt for formatting
     }
+  },
+
+  i18n: {
+    defaultLocale: 'en',
+    locales: [
+      { code: 'en', name: 'English', file: 'en.json', language: 'en-US' },
+      { code: 'fr', name: 'Français', file: 'fr.json', language: 'fr-FR' }
+    ],
+    langDir: 'locales',
+    lazy: true,
+    strategy: 'prefix',
+    detectBrowserLanguage: false
   }
 })

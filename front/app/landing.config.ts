@@ -1,6 +1,6 @@
-// landing.config.ts — Single source of truth for the landing page.
-// To customize this boilerplate for a new project, edit the values below.
-// See LANDING_SETUP.md for a step-by-step guide.
+// landing.config.ts — Configuration for the landing page structure.
+// Text content is now managed via i18n in /i18n/locales/*.json
+// This file contains only icons, URLs, and structural configuration.
 
 export interface LandingFeature {
   icon: string
@@ -37,15 +37,15 @@ export interface LandingConfig {
     headline: string
     title: string
     description: string
-    primaryCta: { label: string, to: string }
-    secondaryCta: { label: string, to: string, icon?: string }
+    primaryCta: { label: string; to: string }
+    secondaryCta: { label: string; to: string; icon?: string }
   }
 
   valueProposition: {
     headline: string
     title: string
     description: string
-    points: Array<{ icon: string, text: string }>
+    points: Array<{ icon: string; text: string }>
   }
 
   features: {
@@ -72,19 +72,19 @@ export interface LandingConfig {
   faq: {
     headline: string
     title: string
-    items: Array<{ label: string, content: string }>
+    items: Array<{ label: string; content: string }>
   }
 
   finalCta: {
     title: string
     description: string
-    primaryCta: { label: string, to: string }
-    secondaryCta?: { label: string, to: string, icon?: string }
+    primaryCta: { label: string; to: string }
+    secondaryCta?: { label: string; to: string; icon?: string }
   }
 
   footer: {
     copyright: string
-    links: Array<{ label: string, to: string }>
+    links: Array<{ label: string; to: string }>
     socialLinks: LandingSocialLink[]
   }
 
@@ -101,147 +101,204 @@ export interface LandingConfig {
   }
 }
 
-export const landingConfig: LandingConfig = {
-  // ──────────────────────────────────────────────
-  // BRANDING — Replace with your app identity
-  // ──────────────────────────────────────────────
-  appName: 'AppName',
-  tagline: 'Your tagline goes here',
-  description: 'A short description of what your application does.',
+// ──────────────────────────────────────────────
+// STRUCTURAL CONFIGURATION (non-translatable)
+// Icons, URLs, and other non-text data
+// ──────────────────────────────────────────────
 
-  // ──────────────────────────────────────────────
-  // NAVIGATION — Anchor links in the header
-  // ──────────────────────────────────────────────
-  navLinks: [
-    { label: 'Features', to: '#features' },
-    { label: 'Testimonials', to: '#testimonials' },
-    { label: 'Download', to: '#download' },
-    { label: 'FAQ', to: '#faq' }
+export const landingStructure = {
+  // Value proposition icons
+  valuePropositionIcons: ['i-lucide-clock', 'i-lucide-trending-up', 'i-lucide-lock'],
+
+  // Feature icons
+  featureIcons: [
+    'i-lucide-zap',
+    'i-lucide-shield-check',
+    'i-lucide-bar-chart-3',
+    'i-lucide-users',
+    'i-lucide-smartphone',
+    'i-lucide-globe'
   ],
 
-  // ──────────────────────────────────────────────
-  // HERO — First thing visitors see
-  // ──────────────────────────────────────────────
-  hero: {
-    headline: 'Now available',
-    title: 'The modern platform for [your use case]',
-    description: 'Replace this with a compelling description of your product. Explain the core value proposition in one or two sentences.',
-    primaryCta: { label: 'Get started', to: '/auth/register' },
-    secondaryCta: { label: 'Learn more', to: '#features', icon: 'i-lucide-arrow-down' }
-  },
+  // Testimonial avatars
+  testimonialAvatars: [
+    'https://i.pravatar.cc/128?img=1',
+    'https://i.pravatar.cc/128?img=2',
+    'https://i.pravatar.cc/128?img=3'
+  ],
 
-  // ──────────────────────────────────────────────
-  // VALUE PROPOSITION — Why users should care
-  // ──────────────────────────────────────────────
-  valueProposition: {
-    headline: 'Why choose us',
-    title: 'Solve [problem] without [pain point]',
-    description: 'Describe the core problem your users face and how your product solves it differently.',
-    points: [
-      { icon: 'i-lucide-clock', text: 'Save hours every week on [task]' },
-      { icon: 'i-lucide-trending-up', text: 'Increase [metric] significantly' },
-      { icon: 'i-lucide-lock', text: 'Enterprise-grade [benefit]' }
-    ]
-  },
-
-  // ──────────────────────────────────────────────
-  // FEATURES — What the product does
-  // ──────────────────────────────────────────────
-  features: {
-    headline: 'Features',
-    title: 'Everything you need to [achieve goal]',
-    description: 'A comprehensive set of tools designed for [target audience].',
-    items: [
-      { icon: 'i-lucide-zap', title: 'Feature One', description: 'Brief description of this feature and its benefit to the user.' },
-      { icon: 'i-lucide-shield-check', title: 'Feature Two', description: 'Brief description of this feature and its benefit to the user.' },
-      { icon: 'i-lucide-bar-chart-3', title: 'Feature Three', description: 'Brief description of this feature and its benefit to the user.' },
-      { icon: 'i-lucide-users', title: 'Feature Four', description: 'Brief description of this feature and its benefit to the user.' },
-      { icon: 'i-lucide-smartphone', title: 'Feature Five', description: 'Brief description of this feature and its benefit to the user.' },
-      { icon: 'i-lucide-globe', title: 'Feature Six', description: 'Brief description of this feature and its benefit to the user.' }
-    ]
-  },
-
-  // ──────────────────────────────────────────────
-  // TESTIMONIALS — Social proof
-  // ──────────────────────────────────────────────
-  testimonials: {
-    headline: 'Testimonials',
-    title: 'Trusted by teams worldwide',
-    items: [
-      { name: 'Jane Doe', role: 'CEO at Company', avatar: 'https://i.pravatar.cc/128?img=1', quote: 'This product transformed how we handle [process]. Highly recommended.' },
-      { name: 'John Smith', role: 'CTO at Startup', avatar: 'https://i.pravatar.cc/128?img=2', quote: 'We reduced our [metric] by 40% in the first month of using this platform.' },
-      { name: 'Alice Johnson', role: 'Product Manager', avatar: 'https://i.pravatar.cc/128?img=3', quote: 'The best tool we have adopted this year. Simple, powerful, and reliable.' }
-    ]
-  },
-
-  // ──────────────────────────────────────────────
-  // APP DOWNLOAD — Mobile app store links
-  // Set URL to empty string '' to hide that badge
-  // ──────────────────────────────────────────────
+  // App store URLs
   appDownload: {
-    headline: 'Mobile app',
-    title: 'Take it everywhere',
-    description: 'Access your workspace on the go. Available on iOS and Android.',
     appStoreUrl: 'https://apps.apple.com/app/your-app-id',
     googlePlayUrl: 'https://play.google.com/store/apps/details?id=your.app.id'
   },
 
-  // ──────────────────────────────────────────────
-  // FAQ — Common questions
-  // ──────────────────────────────────────────────
-  faq: {
-    headline: 'FAQ',
-    title: 'Frequently asked questions',
-    items: [
-      { label: 'What is AppName?', content: 'Replace with your answer describing what the application does.' },
-      { label: 'How much does it cost?', content: 'Replace with your pricing information.' },
-      { label: 'Is there a free trial?', content: 'Replace with your trial policy.' },
-      { label: 'How do I get started?', content: 'Replace with onboarding steps.' }
-    ]
-  },
+  // Footer links (to URLs)
+  footerLinks: [{ to: '/privacy' }, { to: '/terms' }, { to: 'mailto:contact@example.com' }],
 
-  // ──────────────────────────────────────────────
-  // FINAL CTA — Convert visitors
-  // ──────────────────────────────────────────────
-  finalCta: {
-    title: 'Ready to get started?',
-    description: 'Join thousands of users who already trust AppName. Create your free account today.',
-    primaryCta: { label: 'Create free account', to: '/auth/register' },
-    secondaryCta: { label: 'Contact sales', to: 'mailto:sales@example.com', icon: 'i-lucide-mail' }
-  },
+  // Social links
+  socialLinks: [
+    {
+      icon: 'i-simple-icons-x',
+      to: 'https://x.com/yourapp'
+    },
+    {
+      icon: 'i-simple-icons-github',
+      to: 'https://github.com/yourapp'
+    },
+    {
+      icon: 'i-simple-icons-linkedin',
+      to: 'https://linkedin.com/company/yourapp'
+    }
+  ],
 
-  // ──────────────────────────────────────────────
-  // FOOTER
-  // ──────────────────────────────────────────────
-  footer: {
-    copyright: '\u00A9 2026 AppName. All rights reserved.',
-    links: [
-      { label: 'Privacy Policy', to: '/privacy' },
-      { label: 'Terms of Service', to: '/terms' },
-      { label: 'Contact', to: 'mailto:contact@example.com' }
-    ],
-    socialLinks: [
-      { icon: 'i-simple-icons-x', to: 'https://x.com/yourapp', label: 'X (Twitter)' },
-      { icon: 'i-simple-icons-github', to: 'https://github.com/yourapp', label: 'GitHub' },
-      { icon: 'i-simple-icons-linkedin', to: 'https://linkedin.com/company/yourapp', label: 'LinkedIn' }
-    ]
-  },
-
-  // ──────────────────────────────────────────────
-  // SEO — Search engine & social sharing
-  // ──────────────────────────────────────────────
+  // SEO
   seo: {
-    title: 'AppName - Your tagline',
-    description: 'A short SEO description of your application.',
     ogImage: '/og-image.png'
   },
 
-  // ──────────────────────────────────────────────
-  // AUTH — Keycloak redirect URLs
-  // ──────────────────────────────────────────────
+  // Auth URLs
   auth: {
     loginUrl: '/auth/login',
     registerUrl: '/auth/register',
     accountUrl: '/auth/account'
+  },
+
+  // Navigation anchor links
+  navAnchors: ['#features', '#testimonials', '#download', '#faq'],
+
+  // Hero CTA URLs
+  hero: {
+    primaryCta: { to: '/auth/register' },
+    secondaryCta: { to: '#features', icon: 'i-lucide-arrow-down' }
+  },
+
+  // Final CTA URLs
+  finalCta: {
+    primaryCta: { to: '/auth/register' },
+    secondaryCta: { to: 'mailto:sales@example.com', icon: 'i-lucide-mail' }
   }
+}
+
+// ──────────────────────────────────────────────
+// HELPER FUNCTION: Build full config with i18n
+// ──────────────────────────────────────────────
+
+/**
+ * Builds the complete landing config by merging structure with i18n translations.
+ * Use this in components with: const cfg = useLandingConfig()
+ */
+export function useLandingConfig(): ComputedRef<LandingConfig> {
+  const { t } = useI18n()
+
+  return computed(() => ({
+    appName: t('landing.appName'),
+    tagline: t('landing.tagline'),
+    description: t('landing.description'),
+
+    navLinks: [
+      { label: t('landing.nav.features'), to: landingStructure.navAnchors[0]! },
+      { label: t('landing.nav.testimonials'), to: landingStructure.navAnchors[1]! },
+      { label: t('landing.nav.download'), to: landingStructure.navAnchors[2]! },
+      { label: t('landing.nav.faq'), to: landingStructure.navAnchors[3]! }
+    ],
+
+    hero: {
+      headline: t('landing.hero.headline'),
+      title: t('landing.hero.title'),
+      description: t('landing.hero.description'),
+      primaryCta: {
+        label: t('landing.hero.primaryCta'),
+        to: landingStructure.hero.primaryCta.to
+      },
+      secondaryCta: {
+        label: t('landing.hero.secondaryCta'),
+        to: landingStructure.hero.secondaryCta.to,
+        icon: landingStructure.hero.secondaryCta.icon
+      }
+    },
+
+    valueProposition: {
+      headline: t('landing.valueProposition.headline'),
+      title: t('landing.valueProposition.title'),
+      description: t('landing.valueProposition.description'),
+      points: landingStructure.valuePropositionIcons.map((icon, i) => ({
+        icon,
+        text: t(`landing.valueProposition.points.${i}`)
+      }))
+    },
+
+    features: {
+      headline: t('landing.features.headline'),
+      title: t('landing.features.title'),
+      description: t('landing.features.description'),
+      items: landingStructure.featureIcons.map((icon, i) => ({
+        icon,
+        title: t(`landing.features.items.${i}.title`),
+        description: t(`landing.features.items.${i}.description`)
+      }))
+    },
+
+    testimonials: {
+      headline: t('landing.testimonials.headline'),
+      title: t('landing.testimonials.title'),
+      items: landingStructure.testimonialAvatars.map((avatar, i) => ({
+        avatar,
+        name: t(`landing.testimonials.items.${i}.name`),
+        role: t(`landing.testimonials.items.${i}.role`),
+        quote: t(`landing.testimonials.items.${i}.quote`)
+      }))
+    },
+
+    appDownload: {
+      headline: t('landing.appDownload.headline'),
+      title: t('landing.appDownload.title'),
+      description: t('landing.appDownload.description'),
+      appStoreUrl: landingStructure.appDownload.appStoreUrl,
+      googlePlayUrl: landingStructure.appDownload.googlePlayUrl
+    },
+
+    faq: {
+      headline: t('landing.faq.headline'),
+      title: t('landing.faq.title'),
+      items: Array.from({ length: 4 }, (_, i) => ({
+        label: t(`landing.faq.items.${i}.label`),
+        content: t(`landing.faq.items.${i}.content`)
+      }))
+    },
+
+    finalCta: {
+      title: t('landing.finalCta.title'),
+      description: t('landing.finalCta.description'),
+      primaryCta: {
+        label: t('landing.finalCta.primaryCta'),
+        to: landingStructure.finalCta.primaryCta.to
+      },
+      secondaryCta: {
+        label: t('landing.finalCta.secondaryCta'),
+        to: landingStructure.finalCta.secondaryCta.to,
+        icon: landingStructure.finalCta.secondaryCta.icon
+      }
+    },
+
+    footer: {
+      copyright: t('landing.footer.copyright'),
+      links: landingStructure.footerLinks.map((link, i) => ({
+        label: t(`landing.footer.links.${['privacy', 'terms', 'contact'][i]}`),
+        to: link.to
+      })),
+      socialLinks: landingStructure.socialLinks.map((link, i) => ({
+        ...link,
+        label: t(`landing.footer.socialLinks.${['twitter', 'github', 'linkedin'][i]}`)
+      }))
+    },
+
+    seo: {
+      title: t('landing.seo.title'),
+      description: t('landing.seo.description'),
+      ogImage: landingStructure.seo.ogImage
+    },
+
+    auth: landingStructure.auth
+  }))
 }

@@ -1,9 +1,3 @@
-<script setup lang="ts">
-import { landingConfig } from '~/landing.config'
-
-const links = landingConfig.navLinks
-</script>
-
 <template>
   <nav class="hidden md:flex items-center gap-6">
     <NuxtLink
@@ -16,3 +10,10 @@ const links = landingConfig.navLinks
     </NuxtLink>
   </nav>
 </template>
+
+<script setup lang="ts">
+import { useLandingConfig } from '~/landing.config'
+
+const cfg = useLandingConfig()
+const links = computed(() => cfg.value.navLinks)
+</script>

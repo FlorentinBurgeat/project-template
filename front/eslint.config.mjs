@@ -10,7 +10,7 @@ export default withNuxt([
       '@stylistic/quotes': 'off',
       '@stylistic/comma-dangle': 'off',
       '@stylistic/indent': 'off',
-      'vue/html-self-closing': 'always'
+      'vue/html-self-closing': 'off'
     }
   }
 ])

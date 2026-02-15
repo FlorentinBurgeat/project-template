@@ -1,0 +1,147 @@
+{
+  "landing": {
+    "appName": "AppName",
+    "tagline": "Your tagline goes here",
+    "description": "A short description of what your application does.",
+
+    "nav": {
+      "features": "Features",
+      "testimonials": "Testimonials",
+      "download": "Download",
+      "faq": "FAQ"
+    },
+
+    "header": {
+      "signIn": "Sign in",
+      "getStarted": "Get started"
+    },
+
+    "hero": {
+      "headline": "Now available",
+      "title": "The modern platform for [your use case]",
+      "description": "Replace this with a compelling description of your product. Explain the core value proposition in one or two sentences.",
+      "primaryCta": "Get started",
+      "secondaryCta": "Learn more"
+    },
+
+    "valueProposition": {
+      "headline": "Why choose us",
+      "title": "Solve [problem] without [pain point]",
+      "description": "Describe the core problem your users face and how your product solves it differently.",
+      "points": {
+        "0": "Save hours every week on [task]",
+        "1": "Increase [metric] significantly",
+        "2": "Enterprise-grade [benefit]"
+      }
+    },
+
+    "features": {
+      "headline": "Features",
+      "title": "Everything you need to [achieve goal]",
+      "description": "A comprehensive set of tools designed for [target audience].",
+      "items": {
+        "0": {
+          "title": "Feature One",
+          "description": "Brief description of this feature and its benefit to the user."
+        },
+        "1": {
+          "title": "Feature Two",
+          "description": "Brief description of this feature and its benefit to the user."
+        },
+        "2": {
+          "title": "Feature Three",
+          "description": "Brief description of this feature and its benefit to the user."
+        },
+        "3": {
+          "title": "Feature Four",
+          "description": "Brief description of this feature and its benefit to the user."
+        },
+        "4": {
+          "title": "Feature Five",
+          "description": "Brief description of this feature and its benefit to the user."
+        },
+        "5": {
+          "title": "Feature Six",
+          "description": "Brief description of this feature and its benefit to the user."
+        }
+      }
+    },
+
+    "testimonials": {
+      "headline": "Testimonials",
+      "title": "Trusted by teams worldwide",
+      "items": {
+        "0": {
+          "name": "Jane Doe",
+          "role": "CEO at Company",
+          "quote": "This product transformed how we handle [process]. Highly recommended."
+        },
+        "1": {
+          "name": "John Smith",
+          "role": "CTO at Startup",
+          "quote": "We reduced our [metric] by 40% in the first month of using this platform."
+        },
+        "2": {
+          "name": "Alice Johnson",
+          "role": "Product Manager",
+          "quote": "The best tool we have adopted this year. Simple, powerful, and reliable."
+        }
+      }
+    },
+
+    "appDownload": {
+      "headline": "Mobile app",
+      "title": "Take it everywhere",
+      "description": "Access your workspace on the go. Available on iOS and Android."
+    },
+
+    "faq": {
+      "headline": "FAQ",
+      "title": "Frequently asked questions",
+      "items": {
+        "0": {
+          "label": "What is AppName?",
+          "content": "Replace with your answer describing what the application does."
+        },
+        "1": {
+          "label": "How much does it cost?",
+          "content": "Replace with your pricing information."
+        },
+        "2": {
+          "label": "Is there a free trial?",
+          "content": "Replace with your trial policy."
+        },
+        "3": {
+          "label": "How do I get started?",
+          "content": "Replace with onboarding steps."
+        }
+      }
+    },
+
+    "finalCta": {
+      "title": "Ready to get started?",
+      "description": "Join thousands of users who already trust AppName. Create your free account today.",
+      "primaryCta": "Create free account",
+      "secondaryCta": "Contact sales"
+    },
+
+    "footer": {
+      "copyright": "© 2026 AppName. All rights reserved.",
+      "links": {
+        "privacy": "Privacy Policy",
+        "terms": "Terms of Service",
+        "contact": "Contact"
+      },
+      "socialLinks": {
+        "twitter": "X (Twitter)",
+        "github": "GitHub",
+        "linkedin": "LinkedIn"
+      }
+    },
+
+    "seo": {
+      "title": "AppName - Your tagline",
+      "description": "A short SEO description of your application."
+    }
+  }
+}

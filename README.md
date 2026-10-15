@@ -23,14 +23,30 @@ A production-ready full-stack template to kickstart your next web application. B
 
 ## 📋 Prerequisites
 
-Before you begin, ensure you have the following installed:
+Install the following before you begin:
 
-- **Docker** (v20.10+) and **Docker Compose** (v2.0+)
-- **Node.js** (v20+) and **pnpm** (v9+)
-- **Java JDK** (v17+)
-- **Maven** (v3.8+)
-- **Git**
-- **Claude Code CLI** (optional, for MCP integration): Install from [claude.com](https://claude.com/download)
+| Tool | Version | Used for |
+|------|---------|----------|
+| **Docker** + **Docker Compose v2** (`docker compose`, not the legacy `docker-compose` 1.x) | 24+ | Runs PostgreSQL, Keycloak, pgAdmin and the backend |
+| **Docker Buildx** | any | Required by the Keycloak image build |
+| **Node.js** | 20+ | Frontend and Keycloak theme |
+| **pnpm** | 10+ (`npm i -g pnpm`) | Package manager (frontend and theme) |
+| **JDK** | 17+ | Building the Keycloak theme JAR (Keycloakify) |
+| **Maven** | 3.8+ | Building the Keycloak theme JAR (the backend builds inside Docker) |
+| **Git** | any | |
+| **Claude Code CLI** | optional | MCP integration, see step 7 |
+
+> **PostgreSQL**: no local installation is needed, it runs in Docker.
+> If you have a PostgreSQL service installed on your machine, **stop it**
+> (`sudo systemctl disable --now postgresql`) because the container publishes port `5432`.
+
+**Linux only**: allow your user to talk to Docker without `sudo`, then log out and back in:
+
+```bash
+sudo usermod -aG docker $USER
+```
+
+Ports used (must be free): `5432` (PostgreSQL), `5050` (pgAdmin), `8080` (backend), `8081` (Keycloak), `3000` (frontend).
 
 ---
 
@@ -45,53 +61,75 @@ cd project-template
 
 ### 2. Configure environment variables
 
-Copy the example environment file and configure it:
-
 ```bash
-cp .env.example .env
+cd back
+cp .env.template .env
 ```
 
-Edit `.env` and set your values:
+The defaults work out of the box for local development. Review at least:
 
 ```env
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=project_template
-DB_USERNAME=postgres
-DB_PASSWORD=your_secure_password
-
-# Keycloak
-KEYCLOAK_URL=http://localhost:8180
-KEYCLOAK_REALM=project-template
-KEYCLOAK_CLIENT_ID=frontend-app
-KEYCLOAK_CLIENT_SECRET=your_keycloak_client_secret
-
-# Service URLs
-FRONTEND_URL=http://localhost:3000
-BACKEND_URL=http://localhost:8080
+POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB   # PostgreSQL credentials
+PGADMIN_DEFAULT_EMAIL / PGADMIN_DEFAULT_PASSWORD  # pgAdmin login
+KEYCLOAK_ADMIN_USERNAME / KEYCLOAK_ADMIN_PASSWORD # Keycloak admin console (admin/admin)
+KEYCLOAK_REALM_NAME=template                      # must match "realm" in keycloak/template-realm.json
+KEYCLOAK_BACKEND_CLIENT_SECRET                    # change it outside local dev
 ```
 
-### 3. Launch with Docker
+### 3. Build the Keycloak theme (first time only)
+
+The Keycloak image embeds a custom login theme. Its JAR is a build output (git-ignored) and must exist before starting Docker:
 
 ```bash
-docker-compose up
+cd keycloak-theme
+pnpm install
+pnpm build-keycloak-theme
+cd ..
 ```
 
-This will start:
-- **Frontend (Nuxt 4)**: http://localhost:3000
-- **Backend API (Spring Boot)**: http://localhost:8080
-- **Keycloak**: http://localhost:8180
-- **PostgreSQL**: localhost:5432
+This generates `keycloak-theme/dist_keycloak/keycloak-theme-for-kc-all-other-versions.jar`.
+Re-run it whenever you change the theme.
 
-### 4. Access the application
+### 4. Start the backend stack (PostgreSQL, Keycloak, pgAdmin, API)
 
-Open your browser and navigate to:
-- **Application**: http://localhost:3000
-- **Keycloak Admin Console**: http://localhost:8180/admin (admin/admin)
-- **API Documentation**: http://localhost:8080/swagger-ui.html (if Swagger is configured)
+```bash
+cd back
+docker compose up --build
+```
 
-### 5. Setup MCP for Nuxt UI Documentation (Optional)
+The first start takes a few minutes (image builds, Maven dependencies). It will:
+- create the `keycloak_db` and application databases (`back/init-databases.sql`),
+- import the `template` realm from `back/keycloak/template-realm.json`,
+- apply the Flyway migrations and start the Spring Boot API.
+
+Add `-d` to run in the background. To reset everything (including database data): `docker compose down -v`.
+
+### 5. Start the frontend
+
+In another terminal:
+
+```bash
+cd front
+pnpm install
+pnpm dev
+```
+
+### 6. Access the application
+
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:3000 |
+| Backend API | http://localhost:8080 |
+| Keycloak admin console | http://localhost:8081/admin (admin / admin) |
+| pgAdmin | http://localhost:5050 |
+
+Quick check that the backend and Keycloak are wired together:
+
+```bash
+curl http://localhost:8080/api/auth/login   # returns the Keycloak login URL
+```
+
+### 7. Setup MCP for Nuxt UI Documentation (Optional)
 
 If you're using Claude Code CLI, add the Nuxt UI MCP server for instant access to component documentation:
 

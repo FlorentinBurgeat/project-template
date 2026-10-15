@@ -1,6 +1,7 @@
 package features.keycloak.service
 
 import features.keycloak.dto.TokenResponse
+import java.net.URLEncoder
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.*
@@ -147,7 +148,7 @@ class KeycloakAuthService(
             append(authEndpoint)
             append("?response_type=code")
             append("&client_id=$clientId")
-            append("&redirect_uri=$redirectUri")
+            append("&redirect_uri=${URLEncoder.encode(redirectUri, Charsets.UTF_8)}")
             append("&scope=openid profile email")
         }
     }
@@ -164,7 +165,7 @@ class KeycloakAuthService(
         return buildString {
             append(authEndpoint)
             append("?client_id=$clientId")
-            append("&redirect_uri=$redirectUri")
+            append("&redirect_uri=${URLEncoder.encode(redirectUri, Charsets.UTF_8)}")
             append("&response_type=code")
             append("&scope=openid profile email")
         }

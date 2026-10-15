@@ -180,9 +180,10 @@ class RealmInitializationService(
 
             protocol = "openid-connect"
 
-            // No redirect URIs needed for service account
-            redirectUris = mutableListOf()
-            webOrigins = mutableListOf()
+            // The backend runs the authorization code flow on behalf of the frontend,
+            // so the frontend callback URIs must be registered on this client
+            redirectUris = frontendRedirectUris.toMutableList()
+            webOrigins = frontendWebOrigins.toMutableList()
         }
 
         createClient(client, "Backend Service")

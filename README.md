@@ -11,12 +11,13 @@ A production-ready full-stack template to kickstart your next web application. B
 - ✅ **Keycloak Authentication**: Centralized identity and access management with OpenID Connect
 - ✅ **SSO Ready**: Multi-provider support (Email/Password, Google, Facebook, and extensible)
 - ✅ **Account Management**: Registration, login, profile management (delegated to Keycloak)
-- ✅ **Modern Frontend**: Nuxt 4 + Nuxt UI + Tailwind CSS + SSR
+- ✅ **Modern Frontend**: Nuxt 4 + Nuxt UI + Tailwind CSS + SSR, with i18n (en/fr)
+- ✅ **Custom Login Theme**: Keycloakify-based Keycloak theme
 - ✅ **Robust Backend**: Kotlin + Spring Boot + Exposed ORM
 - ✅ **Feature-Based Architecture**: Modular and scalable structure
-- ✅ **Docker Ready**: One command to launch the entire stack
+- ✅ **Docker Ready**: PostgreSQL, Keycloak, pgAdmin and the API start with `docker compose up`
 - ✅ **Database Migrations**: Flyway for schema versioning
-- ✅ **Type-Safe**: End-to-end type safety with Kotlin and TypeScript
+- ✅ **Type-Safe**: Kotlin on the backend, strict TypeScript on the frontend
 - ✅ **AI-Enhanced Development**: MCP server integration for Nuxt UI documentation
 
 ---
@@ -146,49 +147,42 @@ This enables AI-assisted development with real-time access to Nuxt UI component 
 ```
 project-template/
 ├── back/                  # Kotlin Spring Boot backend
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── kotlin/
-│   │   │   │   └── features/      # Feature-based modules
-│   │   │   │       └── authentication/
-│   │   │   │           ├── controllers/
-│   │   │   │           ├── services/
-│   │   │   │           ├── models/
-│   │   │   │           ├── mappers/
-│   │   │   │           └── repositories/
-│   │   │   └── resources/
-│   │   │       └── db/migration/  # Flyway migrations
+│   ├── src/main/
+│   │   ├── kotlin/
+│   │   │   ├── config/        # Security, database
+│   │   │   ├── exception/     # Global error handling
+│   │   │   └── features/      # Feature-based modules
+│   │   │       └── keycloak/  # config, controller, dto, service
+│   │   └── resources/
+│   │       └── db/migration/  # Flyway migrations
+│   ├── keycloak/              # Realm import (template-realm.json)
+│   ├── docker-compose.yml     # PostgreSQL, Keycloak, pgAdmin, backend
+│   ├── .env.template          # Environment variables
 │   ├── pom.xml
-│   └── CLAUDE.md          # Backend architecture docs
+│   └── CLAUDE.md
 │
 ├── front/                 # Nuxt 4 frontend
-│   ├── app/               # Nuxt 4 app directory
+│   ├── app/
 │   │   ├── pages/         # File-based routing
 │   │   ├── components/    # Auto-imported components
-│   │   ├── composables/   # Auto-imported composables
-│   │   ├── layouts/       # Page layouts
+│   │   ├── composables/   # Auto-imported composables (useAuth)
 │   │   ├── middleware/    # Route middleware
 │   │   ├── plugins/       # Vue plugins
-│   │   ├── utils/         # Auto-imported utilities
-│   │   ├── assets/        # Build-time assets
+│   │   ├── types/         # TypeScript types
 │   │   └── app.vue        # Root component
-│   ├── server/            # Nitro server directory
-│   │   ├── api/           # API routes (prefixed /api)
-│   │   ├── routes/        # Server routes (no prefix)
-│   │   └── middleware/    # Server middleware
+│   ├── i18n/              # Translations (en, fr)
 │   ├── public/            # Static assets
-│   ├── nuxt.config.ts     # Nuxt configuration
+│   ├── nuxt.config.ts     # Nuxt configuration (proxies /api/** to the backend)
 │   ├── package.json
-│   └── CLAUDE.md          # Frontend architecture docs
+│   └── CLAUDE.md
 │
-├── .claude/               # Claude Code skills & documentation
-│   └── skills/
-│       ├── nuxt-dev-guidelines/   # Nuxt 4 development guide
-│       ├── kotlin-spring-boot-backend/
-│       └── keycloak/      # Keycloak IAM expertise
+├── keycloak-theme/        # Keycloakify login theme (built into a JAR)
+├── mobile/                # Placeholder for a mobile app
 │
-├── docker-compose.yml
-├── .env.example
+├── .claude/               # Claude Code configuration
+│   ├── rules/             # Path-scoped rules (front/**, back/**)
+│   └── skills/            # Nuxt, Kotlin/Spring Boot, Keycloak, ...
+│
 ├── CLAUDE.md              # General project documentation
 └── README.md
 ```
@@ -277,9 +271,10 @@ cd back
 
 This template includes:
 - **Keycloak Authentication** with OpenID Connect (access, refresh, and ID tokens)
-- **Password hashing** via Keycloak (bcrypt)
+- **Password hashing** handled by Keycloak
 - **Protected routes** requiring authentication
 - **Token validation** using Keycloak public keys
+- **Refresh token in an HTTP-only cookie**, access token kept in memory only
 - **CORS configuration**
 - **Environment-based secrets**
 - **Centralized identity management** via Keycloak
@@ -292,7 +287,7 @@ This template includes:
 
 To enable Google, Facebook, or other identity providers:
 
-1. Access Keycloak Admin Console at http://localhost:8180/admin (admin/admin)
+1. Access Keycloak Admin Console at http://localhost:8081/admin (admin/admin)
 2. Navigate to your realm → Identity Providers
 3. Add a new identity provider (Google, Facebook, GitHub, etc.)
 4. Create OAuth app in [Google Cloud Console](https://console.cloud.google.com/), [Facebook Developers](https://developers.facebook.com/), or other provider
@@ -387,18 +382,18 @@ To enable Google, Facebook, or other identity providers:
 ## 🐛 Troubleshooting
 
 ### Port already in use
-If you get port conflicts, modify ports in `docker-compose.yml`
+If you get port conflicts, change the ports in `back/.env` (e.g. `KEYCLOAK_PORT`) or `back/docker-compose.yml`
 
 ### Database connection failed
-Check your `.env` configuration and ensure PostgreSQL is running
+Check your `back/.env` configuration and ensure the PostgreSQL container is running (`docker compose ps` in `back/`)
 
 ### Keycloak connection failed
-- Ensure Keycloak container is running: `docker ps | grep keycloak`
-- Check Keycloak logs: `docker logs keycloak`
-- Verify `KEYCLOAK_URL` in `.env` matches your Keycloak server address
+- Ensure the Keycloak container is running: `docker ps | grep keycloak`
+- Check Keycloak logs: `docker logs <container>` (name set by `DOCKER_KEYCLOAK_CONTAINER_NAME`, default `keycloak`)
+- Verify `KEYCLOAK_EXTERNAL_URL` in `back/.env` matches your Keycloak address (default `http://localhost:8081`)
 
 ### Frontend can't reach backend
-Verify CORS configuration and API URL in `nuxt.config.ts`
+Verify `NUXT_PUBLIC_API_BASE_URL` (default `http://localhost:8080`, used by the `/api/**` proxy in `front/nuxt.config.ts`) and the CORS configuration in `back/src/main/kotlin/config/SecurityConfig.kt`
 
 ### Authentication redirect loop
 - Clear browser cookies and local storage

@@ -1,60 +1,36 @@
-# Nuxt Starter Template
+# Frontend
 
-[![Nuxt UI](https://img.shields.io/badge/Made%20with-Nuxt%20UI-00DC82?logo=nuxt&labelColor=020420)](https://ui.nuxt.com)
+Nuxt 4 application (Vue 3, Nuxt UI, Tailwind CSS, `@nuxtjs/i18n`) with Keycloak authentication handled through the backend.
 
-Use this template to get started with [Nuxt UI](https://ui.nuxt.com) quickly.
+## Prerequisites
 
-- [Live demo](https://starter-template.nuxt.dev/)
-- [Documentation](https://ui.nuxt.com/docs/getting-started/installation/nuxt)
-
-<a href="https://starter-template.nuxt.dev/" target="_blank">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://ui.nuxt.com/assets/templates/nuxt/starter-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="https://ui.nuxt.com/assets/templates/nuxt/starter-light.png">
-    <img alt="Nuxt Starter Template" src="https://ui.nuxt.com/assets/templates/nuxt/starter-light.png">
-  </picture>
-</a>
-
-> The starter template for Vue is on https://github.com/nuxt-ui-templates/starter-vue.
-
-## Quick Start
-
-```bash [Terminal]
-npm create nuxt@latest -- -t github:nuxt-ui-templates/starter
-```
-
-## Deploy your own
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-name=starter&repository-url=https%3A%2F%2Fgithub.com%2Fnuxt-ui-templates%2Fstarter&demo-image=https%3A%2F%2Fui.nuxt.com%2Fassets%2Ftemplates%2Fnuxt%2Fstarter-dark.png&demo-url=https%3A%2F%2Fstarter-template.nuxt.dev%2F&demo-title=Nuxt%20Starter%20Template&demo-description=A%20minimal%20template%20to%20get%20started%20with%20Nuxt%20UI.)
+- Node.js 20+ and pnpm 10+
+- The backend stack running (see the [root README](../README.md)). Requests to `/api/**` are proxied to `NUXT_PUBLIC_API_BASE_URL` (default `http://localhost:8080`).
 
 ## Setup
 
-Make sure to install the dependencies:
-
 ```bash
 pnpm install
+pnpm dev        # http://localhost:3000
 ```
 
-## Development Server
+## Scripts
 
-Start the development server on `http://localhost:3000`:
+| Script | Purpose |
+|--------|---------|
+| `pnpm dev` | Dev server with hot reload |
+| `pnpm build` / `pnpm preview` | Production build / local preview |
+| `pnpm lint` | ESLint |
+| `pnpm fmt` / `pnpm fmt:check` | Prettier write / check |
+| `pnpm typecheck` | `nuxt typecheck` |
+| `pnpm test:unit` / `pnpm test:nuxt` | Vitest (unit / Nuxt environment) |
+| `pnpm test:e2e` | Playwright |
 
-```bash
-pnpm dev
-```
+## Structure
 
-## Production
+- `app/pages/` - file-based routes (landing, dashboard, `auth/callback`)
+- `app/composables/useAuth.ts` - login, registration, callback, token refresh, logout
+- `app/middleware/auth.ts` - protects authenticated routes
+- `i18n/` - translations (en, fr)
 
-Build the application for production:
-
-```bash
-pnpm build
-```
-
-Locally preview production build:
-
-```bash
-pnpm preview
-```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+See [`CLAUDE.md`](./CLAUDE.md) for conventions.

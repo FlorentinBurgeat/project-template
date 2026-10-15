@@ -27,8 +27,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_INTERNAL_URL:http://localhost:8081}/realms/${KEYCLOAK_REALM_NAME:template-realm}
-          jwk-set-uri: ${KEYCLOAK_INTERNAL_URL:http://localhost:8081}/realms/${KEYCLOAK_REALM_NAME:template-realm}/protocol/openid-connect/certs
+          issuer-uri: ${KEYCLOAK_INTERNAL_URL:http://localhost:8081}/realms/${KEYCLOAK_REALM_NAME:template}
+          jwk-set-uri: ${KEYCLOAK_INTERNAL_URL:http://localhost:8081}/realms/${KEYCLOAK_REALM_NAME:template}/protocol/openid-connect/certs
 
 server:
   port: ${PORT:8080}
@@ -50,7 +50,7 @@ keycloak:
   url: ${KEYCLOAK_INTERNAL_URL:http://localhost:8081}
   external-url: ${KEYCLOAK_EXTERNAL_URL:http://localhost:8081}
   realm:
-    name: ${KEYCLOAK_REALM_NAME:template-realm}
+    name: ${KEYCLOAK_REALM_NAME:template}
   admin:
     username: ${KEYCLOAK_ADMIN_USERNAME:admin}
     password: ${KEYCLOAK_ADMIN_PASSWORD:admin}

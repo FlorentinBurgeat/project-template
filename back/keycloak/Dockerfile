@@ -1,4 +1,4 @@
-FROM quay.io/keycloak/keycloak:26.0.7
+FROM quay.io/keycloak/keycloak:26.2.5
 
 # Copy theme JAR
 COPY --from=theme keycloak-theme-for-kc-all-other-versions.jar /opt/keycloak/providers/keycloak-theme.jar

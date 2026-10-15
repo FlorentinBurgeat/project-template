@@ -128,7 +128,7 @@ Each project fork has its own realm with isolated:
 
 | Variable | Description | Default | Example |
 |----------|-------------|---------|---------|
-| `KEYCLOAK_REALM_NAME` | Unique realm name per project | `template-realm` | `myproject-prod` |
+| `KEYCLOAK_REALM_NAME` | Unique realm name per project | `template` | `myproject-prod` |
 | `KEYCLOAK_ADMIN_USERNAME` | Keycloak admin username | `admin` | `admin` |
 | `KEYCLOAK_ADMIN_PASSWORD` | Keycloak admin password | `admin` | `SuperSecure123!` |
 | `KEYCLOAK_PORT` | External port for Keycloak | `8081` | `8081` |
@@ -419,7 +419,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://keycloak:8080/realms/template-realm
+          issuer-uri: http://keycloak:8080/realms/template
 ```
 
 ### CORS Errors

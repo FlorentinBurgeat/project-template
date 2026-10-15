@@ -97,7 +97,7 @@ services:
             SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.PostgreSQLDialect
             KEYCLOAK_INTERNAL_URL: http://keycloak:8080
             KEYCLOAK_EXTERNAL_URL: http://localhost:${KEYCLOAK_PORT:-8081}
-            KEYCLOAK_REALM_NAME: ${KEYCLOAK_REALM_NAME:-template-realm}
+            KEYCLOAK_REALM_NAME: ${KEYCLOAK_REALM_NAME:-template}
             KEYCLOAK_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
             KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
             KEYCLOAK_FRONTEND_CLIENT_ID: ${KEYCLOAK_FRONTEND_CLIENT_ID:-frontend-client}

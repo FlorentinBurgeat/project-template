@@ -344,7 +344,7 @@ docker-compose logs backend | grep "Realm"
 
 Expected output:
 ```
-Realm 'template-realm' initialized successfully
+Realm 'template' initialized successfully
 ```
 
 ### 3. Access Keycloak Admin
@@ -360,7 +360,7 @@ curl http://localhost:8080/api/auth/login
 
 # Expected response:
 {
-  "redirect_url": "http://localhost:8081/realms/template-realm/protocol/openid-connect/auth?..."
+  "redirect_url": "http://localhost:8081/realms/template/protocol/openid-connect/auth?..."
 }
 ```
 

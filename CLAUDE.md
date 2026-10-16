@@ -30,9 +30,9 @@
 
 The backend mediates the OpenID Connect authorization code flow; the frontend never talks to Keycloak's token endpoint directly.
 
-1. Frontend calls `GET /api/auth/login` (or `/register`) with a `redirect_uri` (`/<locale>/auth/callback`) and redirects the browser to the returned Keycloak URL.
-2. After login, Keycloak redirects to the callback page with an authorization `code`.
-3. Frontend calls `POST /api/auth/callback`; the backend exchanges the code for tokens.
+1. Frontend calls `GET /api/auth/login` (or `/register`) with a `redirect_uri` (`/<locale>/auth/callback`, must be listed in `keycloak.frontend.redirect-uris`) and redirects the browser to the returned Keycloak URL. The backend adds `state` and a PKCE S256 challenge, keeping `state` and the verifier in a short-lived HTTP-only `auth_flow` cookie.
+2. After login, Keycloak redirects to the callback page with an authorization `code` and `state`.
+3. Frontend calls `POST /api/auth/callback` with `{ code, state, redirect_uri }`; the backend checks `state` against the cookie and exchanges the code (with the PKCE verifier) for tokens.
 4. The access token is returned in the response body and kept **in memory** (`useAuth` state); the refresh token is set as an **HTTP-only cookie**.
 5. Protected endpoints require `Authorization: Bearer <access token>`; the backend validates it as an OAuth2 Resource Server against the Keycloak realm.
 6. `useAuth` schedules a refresh ~60s before expiry via `POST /api/auth/refresh` (cookie-based); `POST /api/auth/logout` revokes tokens and clears the cookie.

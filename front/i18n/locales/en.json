@@ -146,6 +146,9 @@
   },
 
   "auth": {
+    "errors": {
+      "unavailable": "Authentication service unavailable. Please try again later."
+    },
     "callback": {
       "processing": "Signing you in...",
       "error": "Authentication failed",

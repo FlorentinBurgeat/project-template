@@ -15,18 +15,15 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
-    public: {
-      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
-    }
+    // Backend base URL used by the server-side /api proxy (server/api/[...path].ts).
+    // Server-only; override at runtime with NUXT_API_BASE_URL.
+    apiBaseUrl: 'http://localhost:8080'
   },
 
   css: ['~/assets/css/main.css'],
 
   routeRules: {
-    '/': { prerender: true },
-    '/api/**': {
-      proxy: { to: (process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:8080') + '/api/**' }
-    }
+    '/': { prerender: true }
   },
 
   compatibilityDate: '2025-01-15',
@@ -44,7 +41,6 @@ export default defineNuxtConfig({
       { code: 'fr', name: 'Français', file: 'fr.json', language: 'fr-FR' }
     ],
     langDir: 'locales',
-    lazy: true,
     strategy: 'prefix',
     detectBrowserLanguage: false
   }

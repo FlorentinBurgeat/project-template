@@ -105,6 +105,8 @@ The first start takes a few minutes (image builds, Maven dependencies). It will:
 
 Add `-d` to run in the background. To reset everything (including database data): `docker compose down -v`.
 
+> **Upgrading an older checkout?** The realm was renamed from `template-realm` to `template`. Update `KEYCLOAK_REALM_NAME` in your existing `back/.env`, then recreate the volumes once (`docker compose down -v`): Keycloak only imports a realm that doesn't exist yet. See [`back/README.md`](back/README.md#upgrading-an-existing-local-stack).
+
 ### 5. Start the frontend
 
 In another terminal:
@@ -393,7 +395,7 @@ Check your `back/.env` configuration and ensure the PostgreSQL container is runn
 - Verify `KEYCLOAK_EXTERNAL_URL` in `back/.env` matches your Keycloak address (default `http://localhost:8081`)
 
 ### Frontend can't reach backend
-Verify `NUXT_PUBLIC_API_BASE_URL` (default `http://localhost:8080`, used by the `/api/**` proxy in `front/nuxt.config.ts`) and the CORS configuration in `back/src/main/kotlin/config/SecurityConfig.kt`
+Verify `NUXT_API_BASE_URL` (default `http://localhost:8080`, used by the `/api/**` proxy in `front/server/api/[...path].ts`) and the CORS configuration in `back/src/main/kotlin/config/SecurityConfig.kt`
 
 ### Authentication redirect loop
 - Clear browser cookies and local storage

@@ -42,12 +42,11 @@ services:
             KC_HEALTH_ENABLED: true
             KC_METRICS_ENABLED: true
 
-            # Import strategy: only import realm if it doesn't exist yet
-            KC_SPI_IMPORT_DIR_STRATEGY: IGNORE_EXISTING
-
             # Logging
             KC_LOG_LEVEL: ${KEYCLOAK_LOG_LEVEL:-INFO}
 
+        # Development mode (HTTP, relaxed hostname). --import-realm skips realms that already exist,
+        # so changes to template-realm.json only apply to a fresh volume (docker compose down -v).
         command: start-dev --import-realm
         depends_on:
             - database
@@ -56,7 +55,8 @@ services:
         networks:
             - app-network
         healthcheck:
-            test: ["CMD", "sh", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && echo 'OK'"]
+            # Ready only once the server has started and the realm import has finished (management port 9000)
+            test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '200 OK' <&3"]
             interval: 10s
             timeout: 5s
             retries: 3
@@ -95,6 +95,8 @@ services:
             SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
             SPRING_JPA_HIBERNATE_DDL_AUTO: validate
             SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.PostgreSQLDialect
+            SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+            AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
             KEYCLOAK_INTERNAL_URL: http://keycloak:8080
             KEYCLOAK_EXTERNAL_URL: http://localhost:${KEYCLOAK_PORT:-8081}
             KEYCLOAK_REALM_NAME: ${KEYCLOAK_REALM_NAME:-template}

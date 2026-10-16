@@ -146,6 +146,9 @@
   },
 
   "auth": {
+    "errors": {
+      "unavailable": "Service d'authentification indisponible. Veuillez réessayer plus tard."
+    },
     "callback": {
       "processing": "Connexion en cours...",
       "error": "L'authentification a échoué",

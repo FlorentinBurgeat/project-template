@@ -5,7 +5,7 @@ Nuxt 4 application (Vue 3, Nuxt UI, Tailwind CSS, `@nuxtjs/i18n`) with Keycloak 
 ## Prerequisites
 
 - Node.js 20+ and pnpm 10+
-- The backend stack running (see the [root README](../README.md)). Requests to `/api/**` are proxied to `NUXT_PUBLIC_API_BASE_URL` (default `http://localhost:8080`).
+- The backend stack running (see the [root README](../README.md)). Requests to `/api/**` are proxied (`server/api/[...path].ts`) to `NUXT_API_BASE_URL` (default `http://localhost:8080`, read at runtime).
 
 ## Setup
 

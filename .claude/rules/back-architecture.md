@@ -30,4 +30,4 @@ Feature-based: each feature under `/features/<name>` is self-contained, with min
 ## Configuration
 
 - Everything sensitive or environment-specific comes from env vars (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`, `KEYCLOAK_*`, `SSO_*`).
-- See `.env.example` for the full list.
+- See `back/.env.template` for the full list.

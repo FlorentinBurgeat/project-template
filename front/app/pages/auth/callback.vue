@@ -29,26 +29,49 @@ definePageMeta({
 })
 
 const route = useRoute()
-const { handleCallback } = useAuth()
+const localePath = useLocalePath()
+const { handleCallback, isAuthenticated } = useAuth()
+
+// Authorization codes are single-use: remember the last one submitted so a remount
+// or back-navigation doesn't replay it (which Keycloak would reject)
+const lastSubmittedCode = useState<string | null>('auth:callback-code', () => null)
 
 const error = ref(false)
 
-onMounted(async () => {
-  const code = route.query.code as string | undefined
+// A repeated query param arrives as an array: keep the first non-empty value
+function firstQueryValue(value: unknown): string | undefined {
+  const first = Array.isArray(value) ? value[0] : value
+  return typeof first === 'string' && first ? first : undefined
+}
 
-  if (!code) {
-    error.value = true
-    setTimeout(() => navigateTo('/'), 3000)
-    return
+function fail() {
+  error.value = true
+  setTimeout(() => navigateTo(localePath('/')), 3000)
+}
+
+onMounted(async () => {
+  const code = firstQueryValue(route.query.code)
+  const state = firstQueryValue(route.query.state)
+  const keycloakError = firstQueryValue(route.query.error)
+
+  if (keycloakError || !code || !state) {
+    if (keycloakError) {
+      console.error('Keycloak returned an error:', keycloakError, route.query.error_description)
+    }
+    return fail()
   }
 
-  const success = await handleCallback(code)
+  if (code === lastSubmittedCode.value) {
+    return isAuthenticated.value ? navigateTo(localePath('/dashboard')) : fail()
+  }
+  lastSubmittedCode.value = code
+
+  const success = await handleCallback(code, state)
 
   if (success) {
-    navigateTo('/dashboard')
+    navigateTo(localePath('/dashboard'), { replace: true })
   } else {
-    error.value = true
-    setTimeout(() => navigateTo('/'), 3000)
+    fail()
   }
 })
 </script>

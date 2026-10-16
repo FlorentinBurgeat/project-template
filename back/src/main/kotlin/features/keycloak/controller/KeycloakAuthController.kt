@@ -1,21 +1,27 @@
 package features.keycloak.controller
 
+import exception.InvalidTokenException
+import features.keycloak.config.KeycloakProperties
+import features.keycloak.dto.AuthorizationRequest
+import features.keycloak.dto.CallbackRequest
 import features.keycloak.dto.LoginRedirectResponse
 import features.keycloak.dto.PublicTokenResponse
+import features.keycloak.dto.TokenResponse
 import features.keycloak.service.KeycloakAuthService
-import jakarta.servlet.http.Cookie
-import jakarta.servlet.http.HttpServletRequest
-import jakarta.servlet.http.HttpServletResponse
+import java.security.MessageDigest
+import java.time.Duration
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseCookie
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
 /**
  * Keycloak Authentication Controller
  *
- * Handles the OAuth2 authorization code flow with HTTP-only cookies for refresh tokens.
+ * Handles the OAuth2 authorization code flow with HTTP-only cookies.
  *
  * Endpoints:
  * - GET  /api/auth/login - Returns Keycloak login URL
@@ -23,67 +29,55 @@ import org.springframework.web.bind.annotation.*
  * - POST /api/auth/callback - Exchanges authorization code for tokens
  * - POST /api/auth/refresh - Refreshes access token using HTTP-only cookie
  * - POST /api/auth/logout - Revokes tokens and clears cookies
+ *
+ * Login CSRF protection: /login and /register store `state` and the PKCE verifier in a short-lived
+ * HTTP-only cookie; /callback only accepts a code whose `state` matches that cookie.
+ * Cookie CSRF protection: all cookies are SameSite=Strict, and cross-origin requests from origins
+ * outside the CORS allow-list are rejected by the CORS filter (see SecurityConfig).
  */
 @RestController
 @RequestMapping("/api/auth")
 class KeycloakAuthController(
     private val authService: KeycloakAuthService,
-    @Value("\${keycloak.frontend.redirect-uris[0]}") private val frontendRedirectUri: String
+    keycloakProperties: KeycloakProperties,
+    @Value("\${auth.cookie.secure}") private val secureCookies: Boolean
 ) {
 
     private val logger = LoggerFactory.getLogger(KeycloakAuthController::class.java)
+    private val allowedRedirectUris: List<String> = keycloakProperties.frontend.redirectUris
 
     companion object {
         private const val REFRESH_TOKEN_COOKIE_NAME = "refresh_token"
-        private const val REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60 // 7 days in seconds
-    }
-
-    /**
-     * Simple health check endpoint to test hot reload.
-     *
-     * GET /api/auth/health
-     */
-    @GetMapping("/health")
-    fun healthCheck(): ResponseEntity<Map<String, String>> {
-        return ResponseEntity.ok(mapOf(
-            "status" to "OK",
-            "message" to "Polling-based hot test SUCCESS! 🔥🚀",
-            "timestamp" to System.currentTimeMillis().toString()
-        ))
+        private const val AUTH_FLOW_COOKIE_NAME = "auth_flow"
+        private const val COOKIE_PATH = "/api/auth"
+        private val DEFAULT_REFRESH_TOKEN_MAX_AGE: Duration = Duration.ofDays(7)
+        private val AUTH_FLOW_MAX_AGE: Duration = Duration.ofMinutes(10)
     }
 
     /**
      * Returns the Keycloak login URL for the frontend to redirect to.
      *
-     * GET /api/auth/login?redirect_uri=http://localhost:5173/callback
+     * GET /api/auth/login?redirect_uri=http://localhost:3000/en/auth/callback
      */
     @GetMapping("/login")
     fun getLoginUrl(
         @RequestParam("redirect_uri", required = false) redirectUri: String?
     ): ResponseEntity<LoginRedirectResponse> {
-        val uri = redirectUri ?: frontendRedirectUri
-        val loginUrl = authService.getLoginUrl(uri)
-
-        logger.info("Generated login URL for redirect_uri: $uri")
-
-        return ResponseEntity.ok(LoginRedirectResponse(loginUrl))
+        val uri = resolveRedirectUri(redirectUri) ?: return ResponseEntity.badRequest().build()
+        return authorizationResponse(authService.startLogin(uri))
     }
 
     /**
      * Returns the Keycloak registration URL for the frontend to redirect to.
      *
-     * GET /api/auth/register?redirect_uri=http://localhost:5173/callback
+     * GET /api/auth/register?redirect_uri=http://localhost:3000/en/auth/callback
      */
     @GetMapping("/register")
     fun getRegistrationUrl(
         @RequestParam("redirect_uri", required = false) redirectUri: String?
     ): ResponseEntity<LoginRedirectResponse> {
-        val uri = redirectUri ?: frontendRedirectUri
-        val registrationUrl = authService.getRegistrationUrl(uri)
-
-        logger.info("Generated registration URL for redirect_uri: $uri")
-
-        return ResponseEntity.ok(LoginRedirectResponse(registrationUrl))
+        val uri = resolveRedirectUri(redirectUri) ?: return ResponseEntity.badRequest().build()
+        return authorizationResponse(authService.startRegistration(uri))
     }
 
     /**
@@ -91,145 +85,135 @@ class KeycloakAuthController(
      * Sets refresh token as HTTP-only cookie, returns access token in response body.
      *
      * POST /api/auth/callback
-     * Body: { "code": "auth-code-here", "redirect_uri": "http://localhost:5173/callback" }
+     * Body: { "code": "...", "state": "...", "redirect_uri": "http://localhost:3000/en/auth/callback" }
      */
     @PostMapping("/callback")
     fun handleCallback(
-        @RequestParam("code") code: String,
-        @RequestParam("redirect_uri", required = false) redirectUri: String?,
-        response: HttpServletResponse
+        @RequestBody body: CallbackRequest,
+        @CookieValue(AUTH_FLOW_COOKIE_NAME, required = false) authFlow: String?
     ): ResponseEntity<PublicTokenResponse> {
-        try {
-            val uri = redirectUri ?: frontendRedirectUri
-            val tokenResponse = authService.exchangeCodeForTokens(code, uri)
+        val uri = resolveRedirectUri(body.redirectUri) ?: return ResponseEntity.badRequest().build()
+        val clearAuthFlow = cookie(AUTH_FLOW_COOKIE_NAME, "", Duration.ZERO)
 
-            // Set refresh token as HTTP-only cookie
-            tokenResponse.refreshToken?.let { refreshToken ->
-                val cookie = createRefreshTokenCookie(refreshToken, REFRESH_TOKEN_MAX_AGE)
-                response.addCookie(cookie)
-                logger.info("Refresh token cookie set successfully")
-            }
-
-            // Return only access token to frontend
-            val publicResponse = PublicTokenResponse(
-                accessToken = tokenResponse.accessToken,
-                expiresIn = tokenResponse.expiresIn,
-                tokenType = tokenResponse.tokenType
-            )
-
-            logger.info("Authorization code exchanged successfully")
-            return ResponseEntity.ok(publicResponse)
-
-        } catch (e: Exception) {
-            logger.error("Failed to exchange authorization code", e)
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        val (expectedState, codeVerifier) = authFlow?.split('.', limit = 2)?.takeIf { it.size == 2 }
+            ?: return unauthorized(clearAuthFlow)
+        if (!MessageDigest.isEqual(expectedState.toByteArray(), body.state.toByteArray())) {
+            logger.warn("Authorization callback rejected: state mismatch")
+            return unauthorized(clearAuthFlow)
         }
+
+        val tokenResponse = try {
+            authService.exchangeCodeForTokens(body.code, uri, codeVerifier)
+        } catch (e: InvalidTokenException) {
+            return unauthorized(clearAuthFlow)
+        }
+
+        return tokenResponseEntity(tokenResponse, clearAuthFlow)
     }
 
     /**
      * Refreshes the access token using the refresh token from HTTP-only cookie.
      * Sets new refresh token cookie, returns new access token.
+     * The cookie is only cleared when Keycloak rejects it; an outage returns 503 and keeps it.
      *
      * POST /api/auth/refresh
      */
     @PostMapping("/refresh")
     fun refreshToken(
-        request: HttpServletRequest,
-        response: HttpServletResponse
+        @CookieValue(REFRESH_TOKEN_COOKIE_NAME, required = false) refreshToken: String?
     ): ResponseEntity<PublicTokenResponse> {
-        try {
-            // Get refresh token from HTTP-only cookie
-            val refreshToken = request.cookies?.firstOrNull { it.name == REFRESH_TOKEN_COOKIE_NAME }?.value
-
-            if (refreshToken.isNullOrBlank()) {
-                logger.warn("Refresh token cookie not found")
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
-            }
-
-            // Exchange refresh token for new tokens
-            val tokenResponse = authService.refreshAccessToken(refreshToken)
-
-            // Set new refresh token cookie
-            tokenResponse.refreshToken?.let { newRefreshToken ->
-                val cookie = createRefreshTokenCookie(newRefreshToken, REFRESH_TOKEN_MAX_AGE)
-                response.addCookie(cookie)
-                logger.info("Refresh token refreshed successfully")
-            }
-
-            // Return new access token
-            val publicResponse = PublicTokenResponse(
-                accessToken = tokenResponse.accessToken,
-                expiresIn = tokenResponse.expiresIn,
-                tokenType = tokenResponse.tokenType
-            )
-
-            logger.info("Access token refreshed successfully")
-            return ResponseEntity.ok(publicResponse)
-
-        } catch (e: Exception) {
-            logger.error("Failed to refresh access token", e)
-
-            // Clear invalid refresh token cookie
-            val expiredCookie = createRefreshTokenCookie("", 0)
-            response.addCookie(expiredCookie)
-
+        if (refreshToken.isNullOrBlank()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         }
+
+        val tokenResponse = try {
+            authService.refreshAccessToken(refreshToken)
+        } catch (e: InvalidTokenException) {
+            return unauthorized(cookie(REFRESH_TOKEN_COOKIE_NAME, "", Duration.ZERO))
+        }
+
+        return tokenResponseEntity(tokenResponse)
     }
 
     /**
      * Logs out the user by revoking tokens and clearing cookies.
+     * The cookie is cleared even if revocation fails.
      *
      * POST /api/auth/logout
      */
     @PostMapping("/logout")
     fun logout(
-        request: HttpServletRequest,
-        response: HttpServletResponse
+        @CookieValue(REFRESH_TOKEN_COOKIE_NAME, required = false) refreshToken: String?
     ): ResponseEntity<Void> {
-        try {
-            // Get refresh token from cookie
-            val refreshToken = request.cookies?.firstOrNull { it.name == REFRESH_TOKEN_COOKIE_NAME }?.value
-
-            if (!refreshToken.isNullOrBlank()) {
-                // Revoke the refresh token
+        if (!refreshToken.isNullOrBlank()) {
+            try {
                 authService.revokeToken(refreshToken)
+            } catch (e: RuntimeException) {
+                logger.warn("Refresh token revocation failed during logout: {}", e.message)
             }
-
-            // Clear refresh token cookie
-            val expiredCookie = createRefreshTokenCookie("", 0)
-            response.addCookie(expiredCookie)
-
-            logger.info("User logged out successfully")
-            return ResponseEntity.noContent().build()
-
-        } catch (e: Exception) {
-            logger.error("Error during logout", e)
-
-            // Still clear the cookie even if revocation fails
-            val expiredCookie = createRefreshTokenCookie("", 0)
-            response.addCookie(expiredCookie)
-
-            return ResponseEntity.noContent().build()
         }
+
+        return ResponseEntity.noContent()
+            .header(HttpHeaders.SET_COOKIE, cookie(REFRESH_TOKEN_COOKIE_NAME, "", Duration.ZERO).toString())
+            .build()
     }
+
+    /** Returns the requested redirect URI if allow-listed (or the default when absent), null otherwise. */
+    private fun resolveRedirectUri(requested: String?): String? {
+        if (requested == null) return allowedRedirectUris.firstOrNull()
+        if (requested in allowedRedirectUris) return requested
+        logger.warn("Rejected redirect_uri not in keycloak.frontend.redirect-uris")
+        return null
+    }
+
+    private fun authorizationResponse(authorization: AuthorizationRequest): ResponseEntity<LoginRedirectResponse> {
+        val flowCookie = cookie(AUTH_FLOW_COOKIE_NAME, "${authorization.state}.${authorization.codeVerifier}", AUTH_FLOW_MAX_AGE)
+        return ResponseEntity.ok()
+            .header(HttpHeaders.SET_COOKIE, flowCookie.toString())
+            .body(LoginRedirectResponse(authorization.url))
+    }
+
+    private fun tokenResponseEntity(
+        tokenResponse: TokenResponse,
+        vararg extraCookies: ResponseCookie
+    ): ResponseEntity<PublicTokenResponse> {
+        val cookies = extraCookies.toMutableList()
+        tokenResponse.refreshToken?.let { refreshToken ->
+            val maxAge = tokenResponse.refreshExpiresIn?.takeIf { it > 0 }?.let(Duration::ofSeconds)
+                ?: DEFAULT_REFRESH_TOKEN_MAX_AGE
+            cookies += cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken, maxAge)
+        }
+
+        val publicResponse = PublicTokenResponse(
+            accessToken = tokenResponse.accessToken,
+            expiresIn = tokenResponse.expiresIn,
+            tokenType = tokenResponse.tokenType
+        )
+
+        return ResponseEntity.ok()
+            .header(HttpHeaders.SET_COOKIE, *cookies.map { it.toString() }.toTypedArray())
+            .body(publicResponse)
+    }
+
+    private fun <T> unauthorized(vararg cookies: ResponseCookie): ResponseEntity<T> =
+        ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .header(HttpHeaders.SET_COOKIE, *cookies.map { it.toString() }.toTypedArray())
+            .build()
 
     /**
-     * Creates an HTTP-only cookie for the refresh token.
+     * Creates an HTTP-only cookie scoped to /api/auth.
      *
-     * Security features:
      * - httpOnly: Prevents JavaScript access (XSS protection)
-     * - secure: Only sent over HTTPS in production
-     * - sameSite: Prevents CSRF attacks
+     * - secure: Only sent over HTTPS (auth.cookie.secure, enable in production)
+     * - sameSite=Strict: Never sent on cross-site requests (CSRF protection)
      * - path: Only sent to /api/auth endpoints
      */
-    private fun createRefreshTokenCookie(value: String, maxAge: Int): Cookie {
-        return Cookie(REFRESH_TOKEN_COOKIE_NAME, value).apply {
-            isHttpOnly = true
-            secure = false // Set to true in production with HTTPS
-            path = "/api/auth"
-            this.maxAge = maxAge
-            // sameSite = "Strict" // Add when Cookie API supports it
-        }
-    }
+    private fun cookie(name: String, value: String, maxAge: Duration): ResponseCookie =
+        ResponseCookie.from(name, value)
+            .httpOnly(true)
+            .secure(secureCookies)
+            .sameSite("Strict")
+            .path(COOKIE_PATH)
+            .maxAge(maxAge)
+            .build()
 }

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { getKcClsx } from "keycloakify/login/lib/kcClsx";
+import { kcSanitize } from "keycloakify/lib/kcSanitize";
 import type { PageProps } from "keycloakify/login/pages/PageProps";
 import type { KcContext } from "../KcContext";
 import type { I18n } from "../i18n";
@@ -39,7 +40,7 @@ export default function Login(
           <div id="kc-registration">
             <span>
               {msg("noAccount")}{" "}
-              <a tabIndex={8} href={url.registrationUrl} className="theme-link">
+              <a href={url.registrationUrl} className="theme-link">
                 {msg("doRegister")}
               </a>
             </span>
@@ -97,7 +98,6 @@ export default function Login(
                         : msg("email")}
                   </label>
                   <input
-                    tabIndex={2}
                     id="username"
                     className={kcClsx("kcInputClass")}
                     name="username"
@@ -113,7 +113,7 @@ export default function Login(
                       className={kcClsx("kcInputErrorMessageClass")}
                       aria-live="polite"
                       dangerouslySetInnerHTML={{
-                        __html: messagesPerField.getFirstError("username"),
+                        __html: kcSanitize(messagesPerField.getFirstError("username")),
                       }}
                     />
                   )}
@@ -125,7 +125,6 @@ export default function Login(
                   {msg("password")}
                 </label>
                 <input
-                  tabIndex={3}
                   id="password"
                   className={kcClsx("kcInputClass")}
                   name="password"
@@ -139,7 +138,7 @@ export default function Login(
                     className={kcClsx("kcInputErrorMessageClass")}
                     aria-live="polite"
                     dangerouslySetInnerHTML={{
-                      __html: messagesPerField.getFirstError("username", "password"),
+                      __html: kcSanitize(messagesPerField.getFirstError("username", "password")),
                     }}
                   />
                 )}
@@ -151,7 +150,6 @@ export default function Login(
                     <div className="checkbox">
                       <label>
                         <input
-                          tabIndex={5}
                           id="rememberMe"
                           name="rememberMe"
                           type="checkbox"
@@ -165,7 +163,7 @@ export default function Login(
                 <div className={kcClsx("kcFormOptionsWrapperClass")}>
                   {realm.resetPasswordAllowed && (
                     <span>
-                      <a tabIndex={6} href={url.loginResetCredentialsUrl}>
+                      <a href={url.loginResetCredentialsUrl}>
                         {msg("doForgotPassword")}
                       </a>
                     </span>
@@ -176,7 +174,6 @@ export default function Login(
               <div id="kc-form-buttons" className={kcClsx("kcFormGroupClass")}>
                 <input type="hidden" id="id-hidden-input" name="credentialId" value={kcContext.auth.selectedCredential} />
                 <input
-                  tabIndex={7}
                   disabled={isLoginButtonDisabled}
                   className={kcClsx("kcButtonClass", "kcButtonPrimaryClass", "kcButtonBlockClass", "kcButtonLargeClass")}
                   name="login"

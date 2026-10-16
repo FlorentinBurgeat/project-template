@@ -1,5 +1,6 @@
 package config
 
+import features.keycloak.config.KeycloakProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
@@ -27,14 +28,16 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
  */
 @Configuration
 @EnableWebSecurity
-class SecurityConfig {
+class SecurityConfig(
+    private val keycloakProperties: KeycloakProperties
+) {
 
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
         http
             .csrf { csrf ->
-                // Disable CSRF for stateless API
-                // When using HTTP-only cookies, you may want to enable CSRF protection
+                // Token-based CSRF is not used. The cookie-authenticated /api/auth endpoints are protected by
+                // SameSite=Strict cookies, and the CORS filter rejects requests whose Origin is not allowed.
                 csrf.disable()
             }
             .cors { cors ->
@@ -51,8 +54,7 @@ class SecurityConfig {
                         "/api/auth/register",
                         "/api/auth/callback",
                         "/api/auth/refresh",
-                        "/api/auth/logout",
-                        "/api/auth/health"
+                        "/api/auth/logout"
                     ).permitAll()
 
                     // Public endpoints - health checks and errors
@@ -75,11 +77,8 @@ class SecurityConfig {
     fun corsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration()
 
-        // Allow frontend origins
-        configuration.allowedOrigins = listOf(
-            "http://localhost:5173",
-            "http://localhost:3000"
-        )
+        // Allow frontend origins (keycloak.frontend.web-origins); requests from any other origin are rejected
+        configuration.allowedOrigins = keycloakProperties.frontend.webOrigins
 
         // Allow common HTTP methods
         configuration.allowedMethods = listOf(
@@ -91,8 +90,8 @@ class SecurityConfig {
             "OPTIONS"
         )
 
-        // Allow all headers
-        configuration.allowedHeaders = listOf("*")
+        // Only the headers the frontend actually sends (credentials are allowed, so stay explicit)
+        configuration.allowedHeaders = listOf("Authorization", "Content-Type")
 
         // Allow credentials (cookies, authorization headers)
         configuration.allowCredentials = true

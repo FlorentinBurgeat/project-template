@@ -40,8 +40,8 @@
       "directAccessGrantsEnabled": false,
       "implicitFlowEnabled": false,
       "redirectUris": [
-        "http://localhost:5173/*",
-        "http://localhost:3000/*"
+        "http://localhost:3000/en/auth/callback",
+        "http://localhost:3000/fr/auth/callback"
       ],
       "webOrigins": [
         "http://localhost:5173",
@@ -98,8 +98,8 @@
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": false,
       "redirectUris": [
-        "http://localhost:5173/*",
-        "http://localhost:3000/*"
+        "http://localhost:3000/en/auth/callback",
+        "http://localhost:3000/fr/auth/callback"
       ],
       "webOrigins": [
         "http://localhost:5173",

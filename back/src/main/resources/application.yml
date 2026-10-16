@@ -53,6 +53,8 @@ keycloak:
   external-url: ${KEYCLOAK_EXTERNAL_URL:http://localhost:8081}
   realm:
     name: ${KEYCLOAK_REALM_NAME:template}
+    # Locales of the Keycloak pages (first = default). Keep in sync with the frontend locales and template-realm.json.
+    supported-locales: en,fr
   admin:
     username: ${KEYCLOAK_ADMIN_USERNAME:admin}
     password: ${KEYCLOAK_ADMIN_PASSWORD:admin}

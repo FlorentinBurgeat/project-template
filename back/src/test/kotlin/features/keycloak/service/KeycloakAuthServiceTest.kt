@@ -56,6 +56,15 @@ class KeycloakAuthServiceTest {
     }
 
     @Test
+    fun `ui_locales is sent only when a locale is given`() {
+        val withLocale = UriComponentsBuilder.fromUriString(service.startLogin(redirectUri, "fr").url).build()
+        val withoutLocale = UriComponentsBuilder.fromUriString(service.startLogin(redirectUri).url).build()
+
+        assertEquals("fr", withLocale.queryParams.getFirst("ui_locales"))
+        assertEquals(null, withoutLocale.queryParams.getFirst("ui_locales"))
+    }
+
+    @Test
     fun `registration URL targets the registrations endpoint`() {
         val authorization = service.startRegistration(redirectUri)
 

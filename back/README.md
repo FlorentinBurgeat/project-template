@@ -41,6 +41,8 @@ All settings come from environment variables, documented in `.env.template`: con
 
 `keycloak.frontend.redirect-uris` in `application.yml` lists the exact frontend callback URLs (one per locale). The backend rejects any other `redirect_uri`, and the same list is registered on the Keycloak clients (keep `keycloak/template-realm.json` in sync).
 
+The frontend also sends its current `locale`; if it is listed in `keycloak.realm.supported-locales`, the backend adds `ui_locales` to the Keycloak URL so the login/register pages use that language (otherwise Keycloak's default applies). The realm's internationalization settings are applied only when the realm is first created: on an existing realm, enable Localization → Internationalization in the admin console or recreate the Keycloak volume.
+
 ## Tests and build
 
 ```bash

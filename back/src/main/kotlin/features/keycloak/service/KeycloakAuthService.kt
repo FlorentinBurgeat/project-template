@@ -112,17 +112,21 @@ class KeycloakAuthService(
      * Starts an authorization code flow against Keycloak's login page.
      *
      * @param redirectUri The (already validated) redirect URI to return to after login
+     * @param locale The (already validated) language of the Keycloak page, or null for the realm default
      */
-    fun startLogin(redirectUri: String): AuthorizationRequest = startAuthorization("auth", redirectUri)
+    fun startLogin(redirectUri: String, locale: String? = null): AuthorizationRequest =
+        startAuthorization("auth", redirectUri, locale)
 
     /**
      * Starts an authorization code flow against Keycloak's registration page.
      *
      * @param redirectUri The (already validated) redirect URI to return to after registration
+     * @param locale The (already validated) language of the Keycloak page, or null for the realm default
      */
-    fun startRegistration(redirectUri: String): AuthorizationRequest = startAuthorization("registrations", redirectUri)
+    fun startRegistration(redirectUri: String, locale: String? = null): AuthorizationRequest =
+        startAuthorization("registrations", redirectUri, locale)
 
-    private fun startAuthorization(endpoint: String, redirectUri: String): AuthorizationRequest {
+    private fun startAuthorization(endpoint: String, redirectUri: String, locale: String?): AuthorizationRequest {
         val state = randomToken()
         val codeVerifier = randomToken()
 
@@ -135,6 +139,7 @@ class KeycloakAuthService(
             .queryParam("state", state)
             .queryParam("code_challenge", codeChallenge(codeVerifier))
             .queryParam("code_challenge_method", "S256")
+            .apply { locale?.let { queryParam("ui_locales", it) } }
             .encode()
             .toUriString()
 

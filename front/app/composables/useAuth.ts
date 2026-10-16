@@ -70,7 +70,7 @@ export function useAuth() {
   async function redirectToKeycloak(endpoint: 'login' | 'register') {
     try {
       const data = await $fetch<LoginRedirectResponse>(`/api/auth/${endpoint}`, {
-        params: { redirect_uri: callbackUri() },
+        params: { redirect_uri: callbackUri(), locale: nuxtApp.$i18n.locale.value },
         credentials: 'include'
       })
       window.location.href = data.redirect_url

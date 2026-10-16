@@ -72,6 +72,27 @@ class KeycloakAuthControllerTest {
     }
 
     @Test
+    fun `login and register forward a supported locale`() {
+        every { authService.startLogin(enCallback, "fr") } returns AuthorizationRequest("https://kc/auth", "st", "ver")
+        every { authService.startRegistration(enCallback, "fr") } returns AuthorizationRequest("https://kc/reg", "st", "ver")
+
+        mockMvc.perform(get("/api/auth/login").param("locale", "fr")).andExpect(status().isOk)
+        mockMvc.perform(get("/api/auth/register").param("locale", "fr")).andExpect(status().isOk)
+
+        verify { authService.startLogin(enCallback, "fr") }
+        verify { authService.startRegistration(enCallback, "fr") }
+    }
+
+    @Test
+    fun `login ignores an unsupported locale instead of failing`() {
+        every { authService.startLogin(enCallback, null) } returns AuthorizationRequest("https://kc/auth", "st", "ver")
+
+        mockMvc.perform(get("/api/auth/login").param("locale", "xx&evil=1")).andExpect(status().isOk)
+
+        verify { authService.startLogin(enCallback, null) }
+    }
+
+    @Test
     fun `login and register reject a redirect_uri outside the allow-list`() {
         mockMvc.perform(get("/api/auth/login").param("redirect_uri", "https://evil.example/callback"))
             .andExpect(status().isBadRequest)

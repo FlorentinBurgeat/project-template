@@ -386,3 +386,8 @@ span[id^="input-error"] {
     border-right: none;
   }
 }
+
+/* The language follows the frontend (ui_locales); no selector on Keycloak pages. */
+#kc-locale {
+  display: none;
+}

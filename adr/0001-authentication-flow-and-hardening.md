@@ -121,7 +121,7 @@ Server-provided messages rendered through `dangerouslySetInnerHTML` go through K
 **Negative / trade-offs**
 
 - Starting a login or registration in two tabs at once overwrites the `auth_flow` cookie, so the first tab's callback fails and must be retried.
-- Adding a locale or a frontend origin requires updating `keycloak.frontend.redirect-uris` and `web-origins`, plus `template-realm.json` for fresh imports.
+- Adding a locale or a frontend origin requires updating `keycloak.frontend.redirect-uris` and `web-origins`, plus `template-realm.json` for fresh imports. A new locale also goes in `keycloak.realm.supported-locales` (and `supportedLocales` in `template-realm.json`) so Keycloak pages follow it via `ui_locales`.
 - Local stacks created before these changes need `docker compose down -v` once, and `KEYCLOAK_REALM_NAME=template` in `.env`.
 - `/dashboard` renders on the server without user data. The user appears after hydration.
 

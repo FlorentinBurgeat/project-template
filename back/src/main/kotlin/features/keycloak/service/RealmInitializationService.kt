@@ -104,6 +104,11 @@ class RealmInitializationService(
             refreshTokenMaxReuse = 0
             revokeRefreshToken = false
 
+            // Localization (Keycloak pages follow the `ui_locales` sent by the backend)
+            isInternationalizationEnabled = true
+            supportedLocales = keycloakProperties.realm.supportedLocales.toSet()
+            defaultLocale = keycloakProperties.realm.supportedLocales.first()
+
             // Themes
             loginTheme = "project-template-theme"
             accountTheme = "keycloak"

@@ -45,6 +45,7 @@ class KeycloakAuthController(
 
     private val logger = LoggerFactory.getLogger(KeycloakAuthController::class.java)
     private val allowedRedirectUris: List<String> = keycloakProperties.frontend.redirectUris
+    private val supportedLocales: List<String> = keycloakProperties.realm.supportedLocales
 
     companion object {
         private const val REFRESH_TOKEN_COOKIE_NAME = "refresh_token"
@@ -57,27 +58,29 @@ class KeycloakAuthController(
     /**
      * Returns the Keycloak login URL for the frontend to redirect to.
      *
-     * GET /api/auth/login?redirect_uri=http://localhost:3000/en/auth/callback
+     * GET /api/auth/login?redirect_uri=http://localhost:3000/en/auth/callback&locale=en
      */
     @GetMapping("/login")
     fun getLoginUrl(
-        @RequestParam("redirect_uri", required = false) redirectUri: String?
+        @RequestParam("redirect_uri", required = false) redirectUri: String?,
+        @RequestParam("locale", required = false) locale: String?
     ): ResponseEntity<LoginRedirectResponse> {
         val uri = resolveRedirectUri(redirectUri) ?: return ResponseEntity.badRequest().build()
-        return authorizationResponse(authService.startLogin(uri))
+        return authorizationResponse(authService.startLogin(uri, resolveLocale(locale)))
     }
 
     /**
      * Returns the Keycloak registration URL for the frontend to redirect to.
      *
-     * GET /api/auth/register?redirect_uri=http://localhost:3000/en/auth/callback
+     * GET /api/auth/register?redirect_uri=http://localhost:3000/en/auth/callback&locale=en
      */
     @GetMapping("/register")
     fun getRegistrationUrl(
-        @RequestParam("redirect_uri", required = false) redirectUri: String?
+        @RequestParam("redirect_uri", required = false) redirectUri: String?,
+        @RequestParam("locale", required = false) locale: String?
     ): ResponseEntity<LoginRedirectResponse> {
         val uri = resolveRedirectUri(redirectUri) ?: return ResponseEntity.badRequest().build()
-        return authorizationResponse(authService.startRegistration(uri))
+        return authorizationResponse(authService.startRegistration(uri, resolveLocale(locale)))
     }
 
     /**
@@ -165,6 +168,9 @@ class KeycloakAuthController(
         logger.warn("Rejected redirect_uri not in keycloak.frontend.redirect-uris")
         return null
     }
+
+    /** Returns the requested locale if supported by the realm, null otherwise (Keycloak then uses its default). */
+    private fun resolveLocale(requested: String?): String? = requested?.takeIf { it in supportedLocales }
 
     private fun authorizationResponse(authorization: AuthorizationRequest): ResponseEntity<LoginRedirectResponse> {
         val flowCookie = cookie(AUTH_FLOW_COOKIE_NAME, "${authorization.state}.${authorization.codeVerifier}", AUTH_FLOW_MAX_AGE)

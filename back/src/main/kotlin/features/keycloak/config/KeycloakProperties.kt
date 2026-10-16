@@ -20,7 +20,9 @@ data class KeycloakProperties(
     var backend: BackendConfig = BackendConfig()
 ) {
     data class RealmConfig(
-        var name: String = ""
+        var name: String = "",
+        /** Locales offered on Keycloak pages; first one is the default. Must match the frontend locales. */
+        var supportedLocales: List<String> = listOf("en", "fr")
     )
 
     data class AdminConfig(

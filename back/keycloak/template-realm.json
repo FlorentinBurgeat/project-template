@@ -20,6 +20,10 @@
   "refreshTokenMaxReuse": 0,
   "revokeRefreshToken": false,
 
+  "internationalizationEnabled": true,
+  "supportedLocales": ["en", "fr"],
+  "defaultLocale": "en",
+
   "loginTheme": "project-template-theme",
   "accountTheme": "keycloak",
   "adminTheme": "keycloak",

@@ -71,6 +71,13 @@ body {
   margin-bottom: 1.25rem;
 }
 
+/* Register form: spacing between fields comes from the gap, not a trailing margin */
+.kc-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
 /* ─── Labels ─── */
 label,
 .pf-c-form__label,
@@ -80,6 +87,16 @@ label,
   font-weight: 500;
   color: #cbd5e1;
   margin-bottom: 0.5rem;
+}
+
+/* Required-field star stays on the label's line; the wrapper owns the spacing */
+.kc-label-wrapper {
+  margin-bottom: 0.5rem;
+}
+
+.kc-label-wrapper label {
+  display: inline;
+  margin-bottom: 0;
 }
 
 /* ─── Inputs ─── */
@@ -111,6 +128,65 @@ input[type="text"][aria-invalid="true"],
 input[type="email"][aria-invalid="true"],
 input[type="password"][aria-invalid="true"] {
   border-color: #ef4444;
+}
+
+/* ─── Password visibility toggle (eye icon inside the input) ─── */
+.kc-input-group {
+  position: relative;
+}
+
+.kc-input-group input {
+  padding-right: 2.75rem;
+}
+
+.kc-password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.kc-password-toggle:hover {
+  color: #f8fafc;
+}
+
+.kc-password-toggle:focus-visible {
+  outline: 2px solid #00dc82;
+  outline-offset: 1px;
+}
+
+.kc-icon-eye,
+.kc-icon-eye-off {
+  display: block;
+  width: 1.125rem;
+  height: 1.125rem;
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
+.kc-icon-eye {
+  -webkit-mask-image: url("@lucide/eye.svg");
+  mask-image: url("@lucide/eye.svg");
+}
+
+.kc-icon-eye-off {
+  -webkit-mask-image: url("@lucide/eye-off.svg");
+  mask-image: url("@lucide/eye-off.svg");
 }
 
 /* ─── Buttons ─── */

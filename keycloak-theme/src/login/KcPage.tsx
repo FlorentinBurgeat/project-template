@@ -14,7 +14,14 @@ const Register = lazy(() => import("./pages/Register"));
 
 const doMakeUserConfirmPassword = true;
 
-const classes = {} satisfies { [key in ClassKey]?: string };
+const classes = {
+  kcFormClass: "kc-form",
+  kcLabelWrapperClass: "kc-label-wrapper",
+  kcInputGroup: "kc-input-group",
+  kcFormPasswordVisibilityButtonClass: "kc-password-toggle",
+  kcFormPasswordVisibilityIconShow: "kc-icon-eye",
+  kcFormPasswordVisibilityIconHide: "kc-icon-eye-off",
+} satisfies { [key in ClassKey]?: string };
 
 export default function KcPage(props: { kcContext: KcContext }) {
   const { kcContext } = props;

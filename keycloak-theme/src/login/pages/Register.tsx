@@ -35,7 +35,6 @@ export default function Register(props: RegisterProps) {
       classes={classes}
       headerNode={msg("registerTitle")}
       displayMessage={messagesPerField.exists("global")}
-      displayRequiredFields
     >
       <form
         id="kc-register-form"
@@ -60,13 +59,9 @@ export default function Register(props: RegisterProps) {
         )}
 
         <div className={kcClsx("kcFormGroupClass")}>
-          <div id="kc-form-options" className={kcClsx("kcFormOptionsClass")}>
-            <div className={kcClsx("kcFormOptionsWrapperClass")}>
-              <span>
-                <a href={url.loginUrl}>{msg("backToLogin")}</a>
-              </span>
-            </div>
-          </div>
+          <p id="kc-required-fields">
+            <span className="required">*</span> {msg("requiredFields")}
+          </p>
 
           <div id="kc-form-buttons" className={kcClsx("kcFormButtonsClass")}>
             <input
@@ -80,6 +75,14 @@ export default function Register(props: RegisterProps) {
               value={msgStr("doRegister")}
               disabled={!isFormSubmittable}
             />
+          </div>
+
+          <div id="kc-form-options" className={kcClsx("kcFormOptionsClass")}>
+            <div className={kcClsx("kcFormOptionsWrapperClass")}>
+              <span>
+                <a href={url.loginUrl}>{msg("backToLogin")}</a>
+              </span>
+            </div>
           </div>
         </div>
       </form>

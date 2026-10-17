@@ -13,19 +13,30 @@
         <LanguageSwitcher />
         <UColorModeButton />
 
-        <UButton
-          :label="$t('landing.header.signIn')"
-          :to="landingStructure.auth.loginUrl"
-          color="neutral"
-          variant="ghost"
-          size="sm"
-        />
+        <template v-if="!isAuthenticated">
+          <UButton
+            :label="$t('landing.header.signIn')"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            @click="login"
+          />
 
-        <UButton
-          :label="$t('landing.header.getStarted')"
-          :to="landingStructure.auth.registerUrl"
-          size="sm"
-        />
+          <UButton :label="$t('landing.header.getStarted')" size="sm" @click="register" />
+        </template>
+
+        <template v-else>
+          <UDropdownMenu :items="userMenuItems">
+            <UButton
+              :label="user?.given_name || user?.name || user?.email || ''"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              icon="i-lucide-user"
+              trailing-icon="i-lucide-chevron-down"
+            />
+          </UDropdownMenu>
+        </template>
       </template>
     </UHeader>
 
@@ -64,6 +75,29 @@
 import { landingStructure } from '~/landing.config'
 
 const { t, locale } = useI18n()
+const { isAuthenticated, user, login, register, logout } = useAuth()
+
+const userMenuItems = computed(() => [
+  [
+    {
+      label: t('auth.menu.dashboard'),
+      icon: 'i-lucide-layout-dashboard',
+      onSelect: () => navigateTo('/dashboard')
+    },
+    {
+      label: t('auth.menu.settings'),
+      icon: 'i-lucide-settings',
+      onSelect: () => navigateTo('/dashboard')
+    }
+  ],
+  [
+    {
+      label: t('auth.menu.logout'),
+      icon: 'i-lucide-log-out',
+      onSelect: () => logout()
+    }
+  ]
+])
 
 useHead({
   meta: [{ name: 'viewport', content: 'width=device-width, initial-scale=1' }],

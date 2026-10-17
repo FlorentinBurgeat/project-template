@@ -27,8 +27,10 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_INTERNAL_URL:http://localhost:8081}/realms/${KEYCLOAK_REALM_NAME:template-realm}
-          jwk-set-uri: ${KEYCLOAK_INTERNAL_URL:http://localhost:8081}/realms/${KEYCLOAK_REALM_NAME:template-realm}/protocol/openid-connect/certs
+          # Tokens carry the browser-facing issuer (KC_HOSTNAME), so the iss check uses the external URL,
+          # while signing keys are fetched over the Docker network via the internal URL.
+          issuer-uri: ${KEYCLOAK_EXTERNAL_URL:http://localhost:8081}/realms/${KEYCLOAK_REALM_NAME:template}
+          jwk-set-uri: ${KEYCLOAK_INTERNAL_URL:http://localhost:8081}/realms/${KEYCLOAK_REALM_NAME:template}/protocol/openid-connect/certs
 
 server:
   port: ${PORT:8080}
@@ -48,8 +50,11 @@ management:
 # Keycloak Configuration
 keycloak:
   url: ${KEYCLOAK_INTERNAL_URL:http://localhost:8081}
+  external-url: ${KEYCLOAK_EXTERNAL_URL:http://localhost:8081}
   realm:
-    name: ${KEYCLOAK_REALM_NAME:template-realm}
+    name: ${KEYCLOAK_REALM_NAME:template}
+    # Locales of the Keycloak pages (first = default). Keep in sync with the frontend locales and template-realm.json.
+    supported-locales: en,fr
   admin:
     username: ${KEYCLOAK_ADMIN_USERNAME:admin}
     password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
@@ -57,9 +62,11 @@ keycloak:
     client-id: admin-cli
   frontend:
     client-id: ${KEYCLOAK_FRONTEND_CLIENT_ID:frontend-client}
+    # Exact callback URIs (one per locale). Registered in Keycloak and used as the backend allow-list;
+    # the first entry is the default when the frontend sends none.
     redirect-uris:
-      - http://localhost:5173/*
-      - http://localhost:3000/*
+      - http://localhost:3000/en/auth/callback
+      - http://localhost:3000/fr/auth/callback
     web-origins:
       - http://localhost:5173
       - http://localhost:3000
@@ -67,8 +74,11 @@ keycloak:
     client-id: ${KEYCLOAK_BACKEND_CLIENT_ID:backend-service}
     client-secret: ${KEYCLOAK_BACKEND_CLIENT_SECRET:change-this-secret-in-production}
 
+auth:
+  cookie:
+    # Must be true whenever the app is served over HTTPS
+    secure: ${AUTH_COOKIE_SECURE:false}
+
 logging:
   level:
-    org.springframework.security: DEBUG
-    org.jetbrains.exposed: DEBUG
     org.keycloak: INFO

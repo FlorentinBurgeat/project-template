@@ -14,6 +14,12 @@ export default defineNuxtConfig({
     enabled: true
   },
 
+  runtimeConfig: {
+    // Backend base URL used by the server-side /api proxy (server/api/[...path].ts).
+    // Server-only; override at runtime with NUXT_API_BASE_URL.
+    apiBaseUrl: 'http://localhost:8080'
+  },
+
   css: ['~/assets/css/main.css'],
 
   routeRules: {
@@ -35,7 +41,6 @@ export default defineNuxtConfig({
       { code: 'fr', name: 'Français', file: 'fr.json', language: 'fr-FR' }
     ],
     langDir: 'locales',
-    lazy: true,
     strategy: 'prefix',
     detectBrowserLanguage: false
   }

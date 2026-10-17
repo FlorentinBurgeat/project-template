@@ -10,14 +10,19 @@ import org.springframework.stereotype.Component
 @Component
 @ConfigurationProperties(prefix = "keycloak")
 data class KeycloakProperties(
+    /** Keycloak URL reachable from the backend (Docker network): token, logout and admin calls. */
     var url: String = "",
+    /** Keycloak URL reachable from the browser; also the token issuer (KC_HOSTNAME). */
+    var externalUrl: String = "",
     var realm: RealmConfig = RealmConfig(),
     var admin: AdminConfig = AdminConfig(),
     var frontend: FrontendConfig = FrontendConfig(),
     var backend: BackendConfig = BackendConfig()
 ) {
     data class RealmConfig(
-        var name: String = ""
+        var name: String = "",
+        /** Locales offered on Keycloak pages; first one is the default. Must match the frontend locales. */
+        var supportedLocales: List<String> = listOf("en", "fr")
     )
 
     data class AdminConfig(

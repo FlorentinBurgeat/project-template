@@ -11,26 +11,43 @@ A production-ready full-stack template to kickstart your next web application. B
 - ✅ **Keycloak Authentication**: Centralized identity and access management with OpenID Connect
 - ✅ **SSO Ready**: Multi-provider support (Email/Password, Google, Facebook, and extensible)
 - ✅ **Account Management**: Registration, login, profile management (delegated to Keycloak)
-- ✅ **Modern Frontend**: Nuxt 4 + Nuxt UI + Tailwind CSS + SSR
+- ✅ **Modern Frontend**: Nuxt 4 + Nuxt UI + Tailwind CSS + SSR, with i18n (en/fr)
+- ✅ **Custom Login Theme**: Keycloakify-based Keycloak theme
 - ✅ **Robust Backend**: Kotlin + Spring Boot + Exposed ORM
 - ✅ **Feature-Based Architecture**: Modular and scalable structure
-- ✅ **Docker Ready**: One command to launch the entire stack
+- ✅ **Docker Ready**: PostgreSQL, Keycloak, pgAdmin and the API start with `docker compose up`
 - ✅ **Database Migrations**: Flyway for schema versioning
-- ✅ **Type-Safe**: End-to-end type safety with Kotlin and TypeScript
+- ✅ **Type-Safe**: Kotlin on the backend, strict TypeScript on the frontend
 - ✅ **AI-Enhanced Development**: MCP server integration for Nuxt UI documentation
 
 ---
 
 ## 📋 Prerequisites
 
-Before you begin, ensure you have the following installed:
+Install the following before you begin:
 
-- **Docker** (v20.10+) and **Docker Compose** (v2.0+)
-- **Node.js** (v20+) and **pnpm** (v9+)
-- **Java JDK** (v17+)
-- **Maven** (v3.8+)
-- **Git**
-- **Claude Code CLI** (optional, for MCP integration): Install from [claude.com](https://claude.com/download)
+| Tool | Version | Used for |
+|------|---------|----------|
+| **Docker** + **Docker Compose v2** (`docker compose`, not the legacy `docker-compose` 1.x) | 24+ | Runs PostgreSQL, Keycloak, pgAdmin and the backend |
+| **Docker Buildx** | any | Required by the Keycloak image build |
+| **Node.js** | 20+ | Frontend and Keycloak theme |
+| **pnpm** | 10+ (`npm i -g pnpm`) | Package manager (frontend and theme) |
+| **JDK** | 17+ | Building the Keycloak theme JAR (Keycloakify) |
+| **Maven** | 3.8+ | Building the Keycloak theme JAR (the backend builds inside Docker) |
+| **Git** | any | |
+| **Claude Code CLI** | optional | MCP integration, see step 7 |
+
+> **PostgreSQL**: no local installation is needed, it runs in Docker.
+> If you have a PostgreSQL service installed on your machine, **stop it**
+> (`sudo systemctl disable --now postgresql`) because the container publishes port `5432`.
+
+**Linux only**: allow your user to talk to Docker without `sudo`, then log out and back in:
+
+```bash
+sudo usermod -aG docker $USER
+```
+
+Ports used (must be free): `5432` (PostgreSQL), `5050` (pgAdmin), `8080` (backend), `8081` (Keycloak), `3000` (frontend).
 
 ---
 
@@ -45,53 +62,77 @@ cd project-template
 
 ### 2. Configure environment variables
 
-Copy the example environment file and configure it:
-
 ```bash
-cp .env.example .env
+cd back
+cp .env.template .env
 ```
 
-Edit `.env` and set your values:
+The defaults work out of the box for local development. Review at least:
 
 ```env
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=project_template
-DB_USERNAME=postgres
-DB_PASSWORD=your_secure_password
-
-# Keycloak
-KEYCLOAK_URL=http://localhost:8180
-KEYCLOAK_REALM=project-template
-KEYCLOAK_CLIENT_ID=frontend-app
-KEYCLOAK_CLIENT_SECRET=your_keycloak_client_secret
-
-# Service URLs
-FRONTEND_URL=http://localhost:3000
-BACKEND_URL=http://localhost:8080
+POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB   # PostgreSQL credentials
+PGADMIN_DEFAULT_EMAIL / PGADMIN_DEFAULT_PASSWORD  # pgAdmin login
+KEYCLOAK_ADMIN_USERNAME / KEYCLOAK_ADMIN_PASSWORD # Keycloak admin console (admin/admin)
+KEYCLOAK_REALM_NAME=template                      # must match "realm" in keycloak/template-realm.json
+KEYCLOAK_BACKEND_CLIENT_SECRET                    # change it outside local dev
 ```
 
-### 3. Launch with Docker
+### 3. Build the Keycloak theme (first time only)
+
+The Keycloak image embeds a custom login theme. Its JAR is a build output (git-ignored) and must exist before starting Docker:
 
 ```bash
-docker-compose up
+cd keycloak-theme
+pnpm install
+pnpm build-keycloak-theme
+cd ..
 ```
 
-This will start:
-- **Frontend (Nuxt 4)**: http://localhost:3000
-- **Backend API (Spring Boot)**: http://localhost:8080
-- **Keycloak**: http://localhost:8180
-- **PostgreSQL**: localhost:5432
+This generates `keycloak-theme/dist_keycloak/keycloak-theme-for-kc-all-other-versions.jar`.
+Re-run it whenever you change the theme.
 
-### 4. Access the application
+### 4. Start the backend stack (PostgreSQL, Keycloak, pgAdmin, API)
 
-Open your browser and navigate to:
-- **Application**: http://localhost:3000
-- **Keycloak Admin Console**: http://localhost:8180/admin (admin/admin)
-- **API Documentation**: http://localhost:8080/swagger-ui.html (if Swagger is configured)
+```bash
+cd back
+docker compose up --build
+```
 
-### 5. Setup MCP for Nuxt UI Documentation (Optional)
+The first start takes a few minutes (image builds, Maven dependencies). It will:
+- create the `keycloak_db` and application databases (`back/init-databases.sql`),
+- import the `template` realm from `back/keycloak/template-realm.json`,
+- apply the Flyway migrations and start the Spring Boot API.
+
+Add `-d` to run in the background. To reset everything (including database data): `docker compose down -v`.
+
+> **Upgrading an older checkout?** The realm was renamed from `template-realm` to `template`. Update `KEYCLOAK_REALM_NAME` in your existing `back/.env`, then recreate the volumes once (`docker compose down -v`): Keycloak only imports a realm that doesn't exist yet. See [`back/README.md`](back/README.md#upgrading-an-existing-local-stack).
+
+### 5. Start the frontend
+
+In another terminal:
+
+```bash
+cd front
+pnpm install
+pnpm dev
+```
+
+### 6. Access the application
+
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:3000 |
+| Backend API | http://localhost:8080 |
+| Keycloak admin console | http://localhost:8081/admin (admin / admin) |
+| pgAdmin | http://localhost:5050 |
+
+Quick check that the backend and Keycloak are wired together:
+
+```bash
+curl http://localhost:8080/api/auth/login   # returns the Keycloak login URL
+```
+
+### 7. Setup MCP for Nuxt UI Documentation (Optional)
 
 If you're using Claude Code CLI, add the Nuxt UI MCP server for instant access to component documentation:
 
@@ -108,49 +149,42 @@ This enables AI-assisted development with real-time access to Nuxt UI component 
 ```
 project-template/
 ├── back/                  # Kotlin Spring Boot backend
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── kotlin/
-│   │   │   │   └── features/      # Feature-based modules
-│   │   │   │       └── authentication/
-│   │   │   │           ├── controllers/
-│   │   │   │           ├── services/
-│   │   │   │           ├── models/
-│   │   │   │           ├── mappers/
-│   │   │   │           └── repositories/
-│   │   │   └── resources/
-│   │   │       └── db/migration/  # Flyway migrations
+│   ├── src/main/
+│   │   ├── kotlin/
+│   │   │   ├── config/        # Security, database
+│   │   │   ├── exception/     # Global error handling
+│   │   │   └── features/      # Feature-based modules
+│   │   │       └── keycloak/  # config, controller, dto, service
+│   │   └── resources/
+│   │       └── db/migration/  # Flyway migrations
+│   ├── keycloak/              # Realm import (template-realm.json)
+│   ├── docker-compose.yml     # PostgreSQL, Keycloak, pgAdmin, backend
+│   ├── .env.template          # Environment variables
 │   ├── pom.xml
-│   └── CLAUDE.md          # Backend architecture docs
+│   └── CLAUDE.md
 │
 ├── front/                 # Nuxt 4 frontend
-│   ├── app/               # Nuxt 4 app directory
+│   ├── app/
 │   │   ├── pages/         # File-based routing
 │   │   ├── components/    # Auto-imported components
-│   │   ├── composables/   # Auto-imported composables
-│   │   ├── layouts/       # Page layouts
+│   │   ├── composables/   # Auto-imported composables (useAuth)
 │   │   ├── middleware/    # Route middleware
 │   │   ├── plugins/       # Vue plugins
-│   │   ├── utils/         # Auto-imported utilities
-│   │   ├── assets/        # Build-time assets
+│   │   ├── types/         # TypeScript types
 │   │   └── app.vue        # Root component
-│   ├── server/            # Nitro server directory
-│   │   ├── api/           # API routes (prefixed /api)
-│   │   ├── routes/        # Server routes (no prefix)
-│   │   └── middleware/    # Server middleware
+│   ├── i18n/              # Translations (en, fr)
 │   ├── public/            # Static assets
-│   ├── nuxt.config.ts     # Nuxt configuration
+│   ├── nuxt.config.ts     # Nuxt configuration (proxies /api/** to the backend)
 │   ├── package.json
-│   └── CLAUDE.md          # Frontend architecture docs
+│   └── CLAUDE.md
 │
-├── .claude/               # Claude Code skills & documentation
-│   └── skills/
-│       ├── nuxt-dev-guidelines/   # Nuxt 4 development guide
-│       ├── kotlin-spring-boot-backend/
-│       └── keycloak/      # Keycloak IAM expertise
+├── keycloak-theme/        # Keycloakify login theme (built into a JAR)
+├── mobile/                # Placeholder for a mobile app
 │
-├── docker-compose.yml
-├── .env.example
+├── .claude/               # Claude Code configuration
+│   ├── rules/             # Path-scoped rules (front/**, back/**)
+│   └── skills/            # Nuxt, Kotlin/Spring Boot, Keycloak, ...
+│
 ├── CLAUDE.md              # General project documentation
 └── README.md
 ```
@@ -239,9 +273,10 @@ cd back
 
 This template includes:
 - **Keycloak Authentication** with OpenID Connect (access, refresh, and ID tokens)
-- **Password hashing** via Keycloak (bcrypt)
+- **Password hashing** handled by Keycloak
 - **Protected routes** requiring authentication
 - **Token validation** using Keycloak public keys
+- **Refresh token in an HTTP-only cookie**, access token kept in memory only
 - **CORS configuration**
 - **Environment-based secrets**
 - **Centralized identity management** via Keycloak
@@ -254,7 +289,7 @@ This template includes:
 
 To enable Google, Facebook, or other identity providers:
 
-1. Access Keycloak Admin Console at http://localhost:8180/admin (admin/admin)
+1. Access Keycloak Admin Console at http://localhost:8081/admin (admin/admin)
 2. Navigate to your realm → Identity Providers
 3. Add a new identity provider (Google, Facebook, GitHub, etc.)
 4. Create OAuth app in [Google Cloud Console](https://console.cloud.google.com/), [Facebook Developers](https://developers.facebook.com/), or other provider
@@ -349,18 +384,18 @@ To enable Google, Facebook, or other identity providers:
 ## 🐛 Troubleshooting
 
 ### Port already in use
-If you get port conflicts, modify ports in `docker-compose.yml`
+If you get port conflicts, change the ports in `back/.env` (e.g. `KEYCLOAK_PORT`) or `back/docker-compose.yml`
 
 ### Database connection failed
-Check your `.env` configuration and ensure PostgreSQL is running
+Check your `back/.env` configuration and ensure the PostgreSQL container is running (`docker compose ps` in `back/`)
 
 ### Keycloak connection failed
-- Ensure Keycloak container is running: `docker ps | grep keycloak`
-- Check Keycloak logs: `docker logs keycloak`
-- Verify `KEYCLOAK_URL` in `.env` matches your Keycloak server address
+- Ensure the Keycloak container is running: `docker ps | grep keycloak`
+- Check Keycloak logs: `docker logs <container>` (name set by `DOCKER_KEYCLOAK_CONTAINER_NAME`, default `keycloak`)
+- Verify `KEYCLOAK_EXTERNAL_URL` in `back/.env` matches your Keycloak address (default `http://localhost:8081`)
 
 ### Frontend can't reach backend
-Verify CORS configuration and API URL in `nuxt.config.ts`
+Verify `NUXT_API_BASE_URL` (default `http://localhost:8080`, used by the `/api/**` proxy in `front/server/api/[...path].ts`) and the CORS configuration in `back/src/main/kotlin/config/SecurityConfig.kt`
 
 ### Authentication redirect loop
 - Clear browser cookies and local storage

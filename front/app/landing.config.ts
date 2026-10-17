@@ -37,7 +37,8 @@ export interface LandingConfig {
     headline: string
     title: string
     description: string
-    primaryCta: { label: string; to: string }
+    // Starts Keycloak registration (useAuth().register) instead of linking to a page
+    primaryCta: { label: string }
     secondaryCta: { label: string; to: string; icon?: string }
   }
 
@@ -78,7 +79,8 @@ export interface LandingConfig {
   finalCta: {
     title: string
     description: string
-    primaryCta: { label: string; to: string }
+    // Starts Keycloak registration (useAuth().register) instead of linking to a page
+    primaryCta: { label: string }
     secondaryCta?: { label: string; to: string; icon?: string }
   }
 
@@ -169,13 +171,11 @@ export const landingStructure = {
 
   // Hero CTA URLs
   hero: {
-    primaryCta: { to: '/auth/register' },
     secondaryCta: { to: '#features', icon: 'i-lucide-arrow-down' }
   },
 
   // Final CTA URLs
   finalCta: {
-    primaryCta: { to: '/auth/register' },
     secondaryCta: { to: 'mailto:sales@example.com', icon: 'i-lucide-mail' }
   }
 }
@@ -208,8 +208,7 @@ export function useLandingConfig(): ComputedRef<LandingConfig> {
       title: t('landing.hero.title'),
       description: t('landing.hero.description'),
       primaryCta: {
-        label: t('landing.hero.primaryCta'),
-        to: landingStructure.hero.primaryCta.to
+        label: t('landing.hero.primaryCta')
       },
       secondaryCta: {
         label: t('landing.hero.secondaryCta'),
@@ -271,8 +270,7 @@ export function useLandingConfig(): ComputedRef<LandingConfig> {
       title: t('landing.finalCta.title'),
       description: t('landing.finalCta.description'),
       primaryCta: {
-        label: t('landing.finalCta.primaryCta'),
-        to: landingStructure.finalCta.primaryCta.to
+        label: t('landing.finalCta.primaryCta')
       },
       secondaryCta: {
         label: t('landing.finalCta.secondaryCta'),

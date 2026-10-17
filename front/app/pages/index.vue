@@ -87,11 +87,12 @@
 import { useLandingConfig } from '~/landing.config'
 
 const cfg = useLandingConfig()
+const { register } = useAuth()
 
 const heroLinks = computed(() => [
   {
     label: cfg.value.hero.primaryCta.label,
-    to: cfg.value.hero.primaryCta.to,
+    onClick: register,
     trailingIcon: 'i-lucide-arrow-right',
     size: 'xl' as const
   },
@@ -108,7 +109,7 @@ const heroLinks = computed(() => [
 const finalCtaLinks = computed(() => [
   {
     label: cfg.value.finalCta.primaryCta.label,
-    to: cfg.value.finalCta.primaryCta.to,
+    onClick: register,
     trailingIcon: 'i-lucide-arrow-right',
     color: 'neutral' as const
   },

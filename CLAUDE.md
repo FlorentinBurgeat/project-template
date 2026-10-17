@@ -2,140 +2,75 @@
 
 ## Project Overview
 
-**project-template** is a production-ready full-stack template designed to kickstart any new web application project. It provides a solid foundation with complete authentication, modular architecture, and integrated development best practices.
+**project-template** is a production-ready full-stack template to kickstart a web application: Keycloak authentication, modular architecture, and a working Docker-based dev setup. Clone it and focus on business features.
 
-### Purpose
-Eliminate initial project setup time by providing a proven, configured, and functional structure from day one. Developers can clone this template and immediately focus on business features.
+> Architecture details: `back/CLAUDE.md`, `front/CLAUDE.md`, and the scoped rules in `.claude/rules/`.
 
-> **Note**: This project contains additional CLAUDE.md files in `/back` and `/front` directories with architecture-specific details.
+---
+
+## Repository Layout
+
+- `back/` - Kotlin / Spring Boot API, `docker-compose.yml`, `.env.template`, Keycloak realm import (`keycloak/template-realm.json`)
+- `front/` - Nuxt 4 app (Nuxt UI, Tailwind, `@nuxtjs/i18n`, landing page)
+- `keycloak-theme/` - custom Keycloak login theme (Keycloakify); its JAR must be built before starting Docker
+- `mobile/` - placeholder, see its README
 
 ---
 
 ## Tech Stack
 
-### Frontend
-- **Framework**: Nuxt 4 (Vue 3 Composition API)
-- **Routing**: Nuxt file-based routing (built-in)
-- **State Management**: useState composable (built-in)
-- **Data Fetching**: useFetch & useAsyncData (built-in)
-- **UI Library**: Nuxt UI (@nuxt/ui)
-- **Styling**: Tailwind CSS (via Nuxt UI)
-- **Build Tool**: Vite (via Nuxt)
-- **Server Engine**: Nitro (built-in)
-
-### Backend
-- **Language**: Kotlin
-- **Framework**: Spring Boot
-- **Build Tool**: Maven
-- **ORM**: Exposed
-- **Database**: PostgreSQL
-- **Migrations**: Flyway
-- **Authentication**: Keycloak (OpenID Connect provider)
-- **SSO**: Keycloak (supports Google, Facebook, and extensible providers)
-
-### DevOps
-- **Containerization**: Docker + Docker Compose
-- **Configuration**: Environment variables
+- **Frontend**: Nuxt 4 (Vue 3), Nuxt UI + Tailwind CSS, `useState` for state, pnpm
+- **Backend**: Kotlin, Spring Boot, Maven, Exposed ORM, PostgreSQL, Flyway
+- **Auth**: Keycloak (OpenID Connect), custom theme via Keycloakify
+- **DevOps**: Docker Compose (PostgreSQL, Keycloak, pgAdmin, backend), env vars for configuration
 
 ---
 
 ## Authentication Flow
 
-### Keycloak-based Authentication
-1. User authenticates via Keycloak (email/password, social providers, or other configured identity providers)
-2. Keycloak returns OpenID Connect tokens (access token + refresh token + ID token)
-3. Frontend stores tokens and uses them for all authenticated requests
-4. Backend validates tokens using Keycloak's public key endpoints
-5. All requests to protected endpoints include token in `Authorization: Bearer <token>` header
+The backend mediates the OpenID Connect authorization code flow; the frontend never talks to Keycloak's token endpoint directly.
 
-### Token Refresh
-When access token expires, frontend automatically uses refresh token to obtain a new access token from Keycloak without re-prompting the user.
+1. Frontend calls `GET /api/auth/login` (or `/register`) with a `redirect_uri` (`/<locale>/auth/callback`, must be listed in `keycloak.frontend.redirect-uris`) and redirects the browser to the returned Keycloak URL. The backend adds `state` and a PKCE S256 challenge, keeping `state` and the verifier in a short-lived HTTP-only `auth_flow` cookie.
+2. After login, Keycloak redirects to the callback page with an authorization `code` and `state`.
+3. Frontend calls `POST /api/auth/callback` with `{ code, state, redirect_uri }`; the backend checks `state` against the cookie and exchanges the code (with the PKCE verifier) for tokens.
+4. The access token is returned in the response body and kept **in memory** (`useAuth` state); the refresh token is set as an **HTTP-only cookie**.
+5. Protected endpoints require `Authorization: Bearer <access token>`; the backend validates it as an OAuth2 Resource Server against the Keycloak realm.
+6. `useAuth` schedules a refresh ~60s before expiry via `POST /api/auth/refresh` (cookie-based); `POST /api/auth/logout` revokes tokens and clears the cookie.
 
-### Social Login & SSO
-Keycloak supports multiple identity providers out of the box:
-- Email/Password (default)
-- Google, Facebook, and other OAuth 2.0/OpenID Connect providers
-- LDAP, SAML, and custom providers (configurable)
-
-The system centralizes identity management through Keycloak, eliminating the need for custom authentication logic.
+Social login, SSO and other identity providers (Google, Facebook, SAML, LDAP...) are configured in Keycloak, not in code. The realm is imported from `back/keycloak/template-realm.json`, and `RealmInitializationService` configures it on startup.
 
 ---
 
-## Configuration & Deployment
+## Configuration & Local Setup
 
-### Docker
-The project includes a `docker-compose.yml` to launch the entire stack (frontend, backend, PostgreSQL) with a single command. Goal: any developer can clone the repo and launch the application in minutes.
+Full steps are in `README.md`. In short:
 
-### Environment Variables
-The project uses environment variables for all sensitive or environment-specific configuration:
-- Database credentials
-- Keycloak server URL and realm
-- Keycloak client ID and secret
-- Service URLs (frontend, backend)
-- Etc.
+1. `cp back/.env.template back/.env` (env vars: DB credentials, Keycloak admin, `KEYCLOAK_REALM_NAME`, client secrets, ports)
+2. Build the Keycloak theme: `cd keycloak-theme && pnpm install && pnpm build-keycloak-theme`
+3. Start the backend stack: `cd back && docker compose up --build`
+4. Start the frontend: `cd front && pnpm install && pnpm dev`
 
-A `.env.example` file is provided with all necessary variables documented.
+Ports: frontend 3000, backend 8080, Keycloak 8081, pgAdmin 5050, PostgreSQL 5432.
 
 ---
 
 ## Development Principles
 
-### Extensibility
-- Add new backend feature = create new feature package with controllers, services, models, etc.
-- Add new frontend page = create new folder in `/pages` with components and composables
-- Add new SSO provider = add OpenID Connect configuration
-
-### Modularity
-Each feature is isolated and can be removed or modified without impacting others. Dependencies between features should be minimal.
-
-### Maintainability
-- Code organized predictably
-- Clear separation of concerns
-- Mappers to isolate data transformations
-- Shared types/models between frontend and backend
-
-### Developer Experience
-The template should allow to:
-1. Clone the repo
-2. Run `docker-compose up`
-3. Start developing business features immediately
+- **Extensibility**: new backend feature = new package under `features/`; new frontend page = new file in `app/pages/`; new SSO provider = Keycloak configuration.
+- **Modularity**: features are isolated and can be removed or changed independently, with minimal cross-dependencies.
+- **Maintainability**: predictable organization, clear separation of concerns, mappers to isolate data transformations.
+- **Developer experience**: clone, configure `.env`, `docker compose up`, start building features.
 
 ---
 
 ## Base Features Included
 
-The template includes **Authentication & Account Management** via Keycloak by default:
-- Registration (delegated to Keycloak)
-- Login with email/password
-- Social login (Google, Facebook, and other configured providers)
-- Automatic token refresh
+- Registration and login delegated to Keycloak (email/password, social providers)
+- Automatic token refresh and logout
 - Protected API endpoints with token validation
-- SSO across multiple applications
-
-### Default Pages (Frontend)
-- Login/Registration page (redirects to Keycloak)
-- Home page with header and navigation menu
-- User settings page (redirects to Keycloak account management for password/email changes)
+- Frontend: landing page, dashboard page, auth callback page, language switcher (en/fr)
 
 ---
 
-## Skills Reference
-
-This section lists the available skills to work on this project. Skills are reusable prompts/workflows for common development tasks.
-
-### Available Skills
-<!-- To be completed with actual skills -->
-- TBD
-
----
-
-## What This Template Is NOT
-
-- Not a framework, just a starting point
-- Not a complete application, but a base to extend
-- Not set in stone: adapt the structure to your specific needs
-
----
-
-**Version**: 1.1
-**Last Updated**: January 2025
+**Version**: 1.3
+**Last Updated**: October 2026

@@ -1,5 +1,5 @@
 {
-  "realm": "template-realm",
+  "realm": "template",
   "enabled": true,
   "displayName": "Template Realm",
 
@@ -20,7 +20,11 @@
   "refreshTokenMaxReuse": 0,
   "revokeRefreshToken": false,
 
-  "loginTheme": "keycloak",
+  "internationalizationEnabled": true,
+  "supportedLocales": ["en", "fr"],
+  "defaultLocale": "en",
+
+  "loginTheme": "project-template-theme",
   "accountTheme": "keycloak",
   "adminTheme": "keycloak",
   "emailTheme": "keycloak",
@@ -40,8 +44,8 @@
       "directAccessGrantsEnabled": false,
       "implicitFlowEnabled": false,
       "redirectUris": [
-        "http://localhost:5173/*",
-        "http://localhost:3000/*"
+        "http://localhost:3000/en/auth/callback",
+        "http://localhost:3000/fr/auth/callback"
       ],
       "webOrigins": [
         "http://localhost:5173",
@@ -97,8 +101,14 @@
       "serviceAccountsEnabled": true,
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": false,
-      "redirectUris": [],
-      "webOrigins": [],
+      "redirectUris": [
+        "http://localhost:3000/en/auth/callback",
+        "http://localhost:3000/fr/auth/callback"
+      ],
+      "webOrigins": [
+        "http://localhost:5173",
+        "http://localhost:3000"
+      ],
       "protocol": "openid-connect"
     }
   ]

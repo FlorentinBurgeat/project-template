@@ -104,8 +104,13 @@ class RealmInitializationService(
             refreshTokenMaxReuse = 0
             revokeRefreshToken = false
 
+            // Localization (Keycloak pages follow the `ui_locales` sent by the backend)
+            isInternationalizationEnabled = true
+            supportedLocales = keycloakProperties.realm.supportedLocales.toSet()
+            defaultLocale = keycloakProperties.realm.supportedLocales.first()
+
             // Themes
-            loginTheme = "keycloak"
+            loginTheme = "project-template-theme"
             accountTheme = "keycloak"
             adminTheme = "keycloak"
             emailTheme = "keycloak"
@@ -180,9 +185,10 @@ class RealmInitializationService(
 
             protocol = "openid-connect"
 
-            // No redirect URIs needed for service account
-            redirectUris = mutableListOf()
-            webOrigins = mutableListOf()
+            // The backend runs the authorization code flow on behalf of the frontend,
+            // so the frontend callback URIs must be registered on this client
+            redirectUris = frontendRedirectUris.toMutableList()
+            webOrigins = frontendWebOrigins.toMutableList()
         }
 
         createClient(client, "Backend Service")

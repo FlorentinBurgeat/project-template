@@ -1,36 +1,51 @@
 package features.keycloak.service
 
+import exception.InvalidTokenException
+import exception.KeycloakUnavailableException
+import features.keycloak.config.KeycloakProperties
+import features.keycloak.dto.AuthorizationRequest
 import features.keycloak.dto.TokenResponse
+import java.security.MessageDigest
+import java.security.SecureRandom
+import java.util.Base64
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.*
 import org.springframework.stereotype.Service
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.util.MultiValueMap
-import org.springframework.web.client.RestTemplate
 import org.springframework.web.client.HttpClientErrorException
+import org.springframework.web.client.RestClientException
+import org.springframework.web.client.RestTemplate
+import org.springframework.web.util.UriComponentsBuilder
 
 /**
  * Keycloak Authentication Service
  *
  * Handles OAuth2 authorization code flow with Keycloak:
+ * - Build the login/registration URL (with `state` and PKCE S256 challenge)
  * - Exchange authorization code for tokens
  * - Refresh access tokens using refresh tokens
  * - Revoke tokens on logout
  *
- * Uses Spring RestTemplate to communicate with Keycloak's token endpoint.
+ * Token calls use the internal Keycloak URL (Docker network); browser-facing URLs use the external one.
+ *
+ * Errors: Keycloak rejecting a code/token (4xx) raises [InvalidTokenException];
+ * Keycloak being unreachable or failing (5xx, I/O) raises [KeycloakUnavailableException].
  */
 @Service
 class KeycloakAuthService(
-    @Value("\${keycloak.url}") private val keycloakUrl: String,
-    @Value("\${keycloak.realm.name}") private val realmName: String,
-    @Value("\${keycloak.backend.client-id}") private val clientId: String,
-    @Value("\${keycloak.backend.client-secret}") private val clientSecret: String,
-    @Value("\${keycloak.frontend.redirect-uris[0]}") private val redirectUri: String
+    keycloakProperties: KeycloakProperties,
+    private val restTemplate: RestTemplate = RestTemplate()
 ) {
 
     private val logger = LoggerFactory.getLogger(KeycloakAuthService::class.java)
-    private val restTemplate = RestTemplate()
+    private val secureRandom = SecureRandom()
+
+    private val keycloakUrl = keycloakProperties.url
+    private val keycloakExternalUrl = keycloakProperties.externalUrl
+    private val realmName = keycloakProperties.realm.name
+    private val clientId = keycloakProperties.backend.clientId
+    private val clientSecret = keycloakProperties.backend.clientSecret
 
     private val tokenEndpoint: String
         get() = "$keycloakUrl/realms/$realmName/protocol/openid-connect/token"
@@ -43,15 +58,15 @@ class KeycloakAuthService(
      *
      * @param code Authorization code from Keycloak redirect
      * @param redirectUri The redirect URI used in the authorization request
+     * @param codeVerifier The PKCE verifier matching the challenge sent in the authorization request
      * @return TokenResponse containing access and refresh tokens
      */
-    fun exchangeCodeForTokens(code: String, redirectUri: String): TokenResponse {
-        logger.info("Exchanging authorization code for tokens")
-
+    fun exchangeCodeForTokens(code: String, redirectUri: String, codeVerifier: String): TokenResponse {
         val body: MultiValueMap<String, String> = LinkedMultiValueMap<String, String>().apply {
             add("grant_type", "authorization_code")
             add("code", code)
             add("redirect_uri", redirectUri)
+            add("code_verifier", codeVerifier)
             add("client_id", clientId)
             add("client_secret", clientSecret)
         }
@@ -66,8 +81,6 @@ class KeycloakAuthService(
      * @return TokenResponse containing new access and refresh tokens
      */
     fun refreshAccessToken(refreshToken: String): TokenResponse {
-        logger.info("Refreshing access token")
-
         val body: MultiValueMap<String, String> = LinkedMultiValueMap<String, String>().apply {
             add("grant_type", "refresh_token")
             add("refresh_token", refreshToken)
@@ -84,88 +97,91 @@ class KeycloakAuthService(
      * @param refreshToken The refresh token to revoke
      */
     fun revokeToken(refreshToken: String) {
-        logger.info("Revoking refresh token")
-
         val body: MultiValueMap<String, String> = LinkedMultiValueMap<String, String>().apply {
             add("client_id", clientId)
             add("client_secret", clientSecret)
             add("refresh_token", refreshToken)
         }
 
-        val headers = HttpHeaders().apply {
-            contentType = MediaType.APPLICATION_FORM_URLENCODED
+        callKeycloak("token revocation") {
+            restTemplate.postForEntity(logoutEndpoint, formRequest(body), String::class.java)
         }
+    }
 
-        val request = HttpEntity(body, headers)
+    /**
+     * Starts an authorization code flow against Keycloak's login page.
+     *
+     * @param redirectUri The (already validated) redirect URI to return to after login
+     * @param locale The (already validated) language of the Keycloak page, or null for the realm default
+     */
+    fun startLogin(redirectUri: String, locale: String? = null): AuthorizationRequest =
+        startAuthorization("auth", redirectUri, locale)
 
-        try {
-            restTemplate.postForEntity(logoutEndpoint, request, String::class.java)
-            logger.info("Token revoked successfully")
-        } catch (e: HttpClientErrorException) {
-            logger.error("Failed to revoke token: ${e.statusCode} - ${e.responseBodyAsString}")
-            throw RuntimeException("Token revocation failed", e)
-        }
+    /**
+     * Starts an authorization code flow against Keycloak's registration page.
+     *
+     * @param redirectUri The (already validated) redirect URI to return to after registration
+     * @param locale The (already validated) language of the Keycloak page, or null for the realm default
+     */
+    fun startRegistration(redirectUri: String, locale: String? = null): AuthorizationRequest =
+        startAuthorization("registrations", redirectUri, locale)
+
+    private fun startAuthorization(endpoint: String, redirectUri: String, locale: String?): AuthorizationRequest {
+        val state = randomToken()
+        val codeVerifier = randomToken()
+
+        val url = UriComponentsBuilder
+            .fromUriString("$keycloakExternalUrl/realms/$realmName/protocol/openid-connect/$endpoint")
+            .queryParam("response_type", "code")
+            .queryParam("client_id", clientId)
+            .queryParam("redirect_uri", redirectUri)
+            .queryParam("scope", "openid profile email")
+            .queryParam("state", state)
+            .queryParam("code_challenge", codeChallenge(codeVerifier))
+            .queryParam("code_challenge_method", "S256")
+            .apply { locale?.let { queryParam("ui_locales", it) } }
+            .encode()
+            .toUriString()
+
+        return AuthorizationRequest(url, state, codeVerifier)
+    }
+
+    /** 32 random bytes, base64url without padding (43 chars, valid as `state` and PKCE verifier). */
+    private fun randomToken(): String {
+        val bytes = ByteArray(32).also { secureRandom.nextBytes(it) }
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
+    }
+
+    private fun codeChallenge(codeVerifier: String): String {
+        val digest = MessageDigest.getInstance("SHA-256").digest(codeVerifier.toByteArray(Charsets.US_ASCII))
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(digest)
     }
 
     /**
      * Makes a token request to Keycloak's token endpoint.
      */
     private fun requestTokens(body: MultiValueMap<String, String>, operation: String): TokenResponse {
-        val headers = HttpHeaders().apply {
-            contentType = MediaType.APPLICATION_FORM_URLENCODED
+        val response = callKeycloak(operation) {
+            restTemplate.postForEntity(tokenEndpoint, formRequest(body), TokenResponse::class.java)
         }
+        return response.body ?: throw KeycloakUnavailableException("$operation returned an empty body")
+    }
 
-        val request = HttpEntity(body, headers)
+    private fun formRequest(body: MultiValueMap<String, String>): HttpEntity<MultiValueMap<String, String>> {
+        val headers = HttpHeaders().apply { contentType = MediaType.APPLICATION_FORM_URLENCODED }
+        return HttpEntity(body, headers)
+    }
 
+    /** Translates Keycloak failures into domain exceptions: 4xx = rejected credentials, anything else = unavailable. */
+    private fun <T> callKeycloak(operation: String, call: () -> T): T {
         try {
-            val response = restTemplate.postForEntity(tokenEndpoint, request, TokenResponse::class.java)
-
-            if (response.statusCode == HttpStatus.OK && response.body != null) {
-                logger.info("$operation successful")
-                return response.body!!
-            } else {
-                logger.error("$operation failed: ${response.statusCode}")
-                throw RuntimeException("$operation failed with status: ${response.statusCode}")
-            }
+            return call()
         } catch (e: HttpClientErrorException) {
-            logger.error("$operation failed: ${e.statusCode} - ${e.responseBodyAsString}")
-            throw RuntimeException("$operation failed", e)
-        }
-    }
-
-    /**
-     * Generates the Keycloak login URL for the authorization code flow.
-     *
-     * @param redirectUri The redirect URI to return to after login
-     * @return The complete login URL
-     */
-    fun getLoginUrl(redirectUri: String): String {
-        val authEndpoint = "$keycloakUrl/realms/$realmName/protocol/openid-connect/auth"
-
-        return buildString {
-            append(authEndpoint)
-            append("?response_type=code")
-            append("&client_id=$clientId")
-            append("&redirect_uri=$redirectUri")
-            append("&scope=openid profile email")
-        }
-    }
-
-    /**
-     * Generates the Keycloak registration URL.
-     *
-     * @param redirectUri The redirect URI to return to after registration
-     * @return The complete registration URL
-     */
-    fun getRegistrationUrl(redirectUri: String): String {
-        val authEndpoint = "$keycloakUrl/realms/$realmName/protocol/openid-connect/registrations"
-
-        return buildString {
-            append(authEndpoint)
-            append("?client_id=$clientId")
-            append("&redirect_uri=$redirectUri")
-            append("&response_type=code")
-            append("&scope=openid profile email")
+            logger.warn("Keycloak rejected $operation: {}", e.statusCode)
+            throw InvalidTokenException("$operation rejected by Keycloak")
+        } catch (e: RestClientException) {
+            logger.error("Keycloak unavailable during $operation: {}", e.message)
+            throw KeycloakUnavailableException("$operation failed: Keycloak unavailable", e)
         }
     }
 }

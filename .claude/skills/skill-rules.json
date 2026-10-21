@@ -99,58 +99,6 @@
               ]
           }
       },
-      "frontend-dev-guidelines": {
-          "type": "domain",
-          "enforcement": "suggest",
-          "priority": "high",
-          "description": "Vue 3 frontend best practices with TypeScript and Tailwind CSS",
-          "promptTriggers": {
-              "keywords": [
-                  "component",
-                  "Vue component",
-                  "UI",
-                  "interface",
-                  "page",
-                  "modal",
-                  "dialog",
-                  "form",
-                  "Vue",
-                  "Vue 3",
-                  "Tailwind",
-                  "styling",
-                  "frontend",
-                  "composition API"
-              ],
-              "intentPatterns": [
-                  "(create|add|make|build|update|modify|edit).*?(component|UI|page|modal|dialog|form)",
-                  "(how to|best practice).*?(component|Vue|composition API)",
-                  "(style|design|layout).*?(component|UI|Tailwind)"
-              ]
-          },
-          "fileTriggers": {
-              "pathPatterns": [
-                  "frontend/src/**/*.vue",
-                  "frontend/src/**/*.ts",
-                  "client/src/**/*.vue",
-                  "client/src/**/*.ts",
-                  "src/**/*.vue"
-              ],
-              "pathExclusions": [
-                  "**/*.test.ts",
-                  "**/*.spec.ts",
-                  "**/vite.config.ts",
-                  "**/tsconfig.json"
-              ],
-              "contentPatterns": [
-                  "<template>",
-                  "<script setup",
-                  "defineProps",
-                  "defineEmits",
-                  "class=.*tw-",
-                  "@apply"
-              ]
-          }
-      },
       "route-tester": {
           "type": "domain",
           "enforcement": "suggest",

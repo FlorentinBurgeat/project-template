@@ -18,5 +18,5 @@ Detailed conventions live in `/.claude/rules/` (scoped to `front/**`):
 ## Skills
 
 - **nuxt-dev-guidelines** - Nuxt 4 reference (SSR, data fetching, SEO, server API)
-- **frontend-dev-guidelines** - Vue 3 / TypeScript / Tailwind guidance
 - **tailwindcss** - Tailwind CSS v4 patterns
+- **Nuxt UI** - components via the `nuxt-ui` MCP server (`.mcp.json`)

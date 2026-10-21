@@ -10,9 +10,9 @@
 - [ ] Keycloak is accessible at http://localhost:8081/admin
 - [ ] Realm is created (check: `docker-compose logs backend | grep "Realm"`)
 - [ ] You have the following skills available:
-  - `frontend-dev-guidelines` (Vue 3 patterns)
+  - `nuxt-dev-guidelines` (Nuxt 4 patterns)
   - `tanstack-query` (data fetching)
-  - `tailwindcss` or `shadcn` (styling)
+  - `tailwindcss` (styling) and the nuxt-ui MCP (components)
 
 ---
 
@@ -231,9 +231,9 @@ When implementing each file, invoke the appropriate skill:
 
 ### For useAuth.ts and useUser.ts composables
 ```
-/frontend-dev-guidelines
+/nuxt-dev-guidelines
 ```
-Use for: Composition API patterns, reactive state, singleton composables
+Use for: Nuxt 4 conventions, auto-imports, useState-based composables
 
 ### For API service layer
 ```
@@ -243,7 +243,7 @@ Use for: Data fetching patterns, cache management, query/mutation patterns
 
 ### For LoginPage and CallbackPage
 ```
-/shadcn or /tailwindcss
+/tailwindcss
 ```
 Use for: Styling components, forms, buttons, loading states
 

@@ -132,15 +132,9 @@ Quick check that the backend and Keycloak are wired together:
 curl http://localhost:8080/api/auth/login   # returns the Keycloak login URL
 ```
 
-### 7. Setup MCP for Nuxt UI Documentation (Optional)
+### 7. Nuxt UI MCP server (Claude Code)
 
-If you're using Claude Code CLI, add the Nuxt UI MCP server for instant access to component documentation:
-
-```bash
-claude mcp add --transport http nuxt-ui-remote https://ui.nuxt.com/mcp
-```
-
-This enables AI-assisted development with real-time access to Nuxt UI component docs, props, slots, and examples.
+The Nuxt UI MCP server is declared in `.mcp.json` at the repo root, so Claude Code gives AI agents real-time access to Nuxt UI component docs, props, slots and examples. Approve the `nuxt-ui` server when Claude Code prompts for it on first launch.
 
 ---
 
@@ -403,10 +397,7 @@ Verify `NUXT_API_BASE_URL` (default `http://localhost:8080`, used by the `/api/*
 - Check that redirect URIs are correctly configured in Keycloak client settings
 
 ### MCP tools not working
-Ensure you've added the Nuxt UI MCP server:
-```bash
-claude mcp add --transport http nuxt-ui-remote https://ui.nuxt.com/mcp
-```
+The `nuxt-ui` server is declared in `.mcp.json`. Check it is approved and connected with `/mcp` in Claude Code; if it was declined, re-enable it there.
 
 ---
 

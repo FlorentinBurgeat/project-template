@@ -1,6 +1,6 @@
 ---
 name: nuxt-dev-guidelines
-description: Nuxt 4 frontend development guidelines with TypeScript, Composition API, file-based routing, auto-imports, server-side rendering, data fetching with useFetch and useAsyncData, SEO and meta tag management with useHead and useSeoMeta, Nitro server engine, API routes, Nuxt UI component integration with MCP nuxt-ui-remote, and best practices for building performant full-stack web applications.
+description: Nuxt 4 frontend development guidelines with TypeScript, Composition API, file-based routing, auto-imports, server-side rendering, data fetching with useFetch and useAsyncData, SEO and meta tag management with useHead and useSeoMeta, Nitro server engine, API routes, Nuxt UI component integration with MCP nuxt-ui, and best practices for building performant full-stack web applications.
 ---
 
 # Nuxt 4 Development Guidelines
@@ -462,9 +462,9 @@ This project uses **Nuxt UI** (@nuxt/ui):
 </template>
 ```
 
-#### Using MCP nuxt-ui-remote for Documentation
+#### Using MCP nuxt-ui for Documentation
 
-The **nuxt-ui-remote** MCP server provides access to official Nuxt UI documentation and component metadata. Use these tools when you need detailed component information beyond basic usage.
+The **nuxt-ui** MCP server provides access to official Nuxt UI documentation and component metadata. Use these tools when you need detailed component information beyond basic usage.
 
 **When to Use MCP Tools:**
 - Learning how to use a new Nuxt UI component
@@ -477,10 +477,9 @@ The **nuxt-ui-remote** MCP server provides access to official Nuxt UI documentat
 
 | Tool | Purpose | Example |
 |------|---------|---------|
-| `list-components` | Browse all available Nuxt UI components | Get complete component catalog |
+| `search-components` | Search components by name, category or intent | `{ category: "form", search: "select" }` |
 | `get-component` | Fetch full component documentation | `{ componentName: "Button" }` |
 | `get-component-metadata` | Get detailed props/slots/events | `{ componentName: "Button" }` |
-| `search-components-by-category` | Find components by category | `{ category: "forms" }` |
 | `list-examples` | Browse UI example implementations | Get all available examples |
 | `get-example` | Fetch specific example code | `{ exampleName: "ButtonExample" }` |
 | `get-documentation-page` | Fetch documentation pages | `{ path: "/docs/components/button" }` |
@@ -489,23 +488,21 @@ The **nuxt-ui-remote** MCP server provides access to official Nuxt UI documentat
 
 ```typescript
 // Get complete Button component documentation
-mcp__nuxt-ui-remote__get-component({
+mcp__nuxt-ui__get-component({
   componentName: "Button",
   sections: ["usage", "api", "examples"] // Optional: filter sections
 })
 
 // Get detailed component metadata (props, slots, events)
-mcp__nuxt-ui-remote__get-component-metadata({
+mcp__nuxt-ui__get-component-metadata({
   componentName: "Button"
 })
 
-// Search for all form components
-mcp__nuxt-ui-remote__search-components-by-category({
-  category: "forms"
+// Search form components
+mcp__nuxt-ui__search-components({
+  category: "form"
 })
 
-// List all available components
-mcp__nuxt-ui-remote__list-components()
 ```
 
 **Best Practices:**
@@ -679,5 +676,5 @@ For detailed examples and comprehensive guides:
 **Skill Version**: 2.1
 **Last Updated**: January 26, 2026
 **Framework Version**: Nuxt 4.x
-**MCP Integration**: nuxt-ui-remote for component documentation
-**Line Count**: ~680 lines (includes MCP nuxt-ui-remote documentation)
+**MCP Integration**: nuxt-ui for component documentation
+**Line Count**: ~680 lines (includes MCP nuxt-ui documentation)

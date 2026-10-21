@@ -72,5 +72,21 @@ Ports: frontend 3000, backend 8080, Keycloak 8081, pgAdmin 5050, PostgreSQL 5432
 
 ---
 
+## Agent skills
+
+### Issue tracker
+
+Local markdown under `.scratch/<feature>/` (spec + one file per ticket). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical roles, recorded as a `Status:` line in each ticket. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
+---
+
 **Version**: 1.3
 **Last Updated**: October 2026

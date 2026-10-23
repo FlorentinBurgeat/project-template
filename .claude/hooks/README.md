@@ -41,7 +41,7 @@ chmod +x your-project/.claude/hooks/skill-activation-prompt.sh
 
 # Install dependencies
 cd your-project/.claude/hooks
-npm install
+pnpm install
 ```
 
 **Add to settings.json:**

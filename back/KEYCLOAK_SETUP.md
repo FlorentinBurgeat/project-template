@@ -2,7 +2,7 @@
 
 ## Overview
 
-This template uses **Keycloak** as the identity and access management solution, replacing the previous custom JWT implementation. Each project fork can have its own isolated realm on a shared Keycloak instance.
+The backend uses **Keycloak** as the identity and access management solution. Each project can have its own isolated realm on a shared Keycloak instance.
 
 ## Table of Contents
 
@@ -88,7 +88,7 @@ Login with admin credentials from `.env` file.
                             │                      │
                             ▼                      ▼
                      ┌──────────────────────────────┐
-                     │      PostgreSQL Database      │
+                     │      PostgreSQL Database     │
                      │  - App DB: template_db       │
                      │  - Keycloak DB: keycloak_db  │
                      └──────────────────────────────┘

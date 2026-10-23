@@ -35,7 +35,7 @@ The realm's backend client `"secret"` stays `${KEYCLOAK_BACKEND_CLIENT_SECRET:..
 | `keycloak-theme/vite.config.ts` | `themeName: "project-template-theme"` | `"<slug>-theme"` |
 | `keycloak-theme/src/kc.gen.tsx` | `"project-template-theme"` (2 times) | `"<slug>-theme"` (the theme build regenerates it too) |
 | `back/src/main/kotlin/features/keycloak/service/RealmInitializationService.kt` | `loginTheme = "project-template-theme"` | `"<slug>-theme"` |
-| `keycloak-theme/README.md` | `` `project-template-theme` `` | `` `<slug>-theme` `` |
+| `keycloak-theme/README.md` | `` `project-template-theme` `` (2 times), realm path `back/keycloak/template-realm.json` | `` `<slug>-theme` ``, `back/keycloak/<slug>-realm.json` |
 | `keycloak-theme/src/login/css/main.css` | header `Project Template - Keycloak Theme` | `<Name> - Keycloak Theme` |
 | `keycloak-theme/index.html` | `<title>Keycloak Theme Dev</title>` | `<Name> - Keycloak Theme Dev` |
 
@@ -61,7 +61,9 @@ Unchanged: test fixtures using `template` as a sample realm (`JwtIssuerConfigTes
 | same | `DOCKER_DATABASE_CONTAINER_NAME=template_db` | `<snake>_db` |
 | same | `DOCKER_BACKEND_CONTAINER_NAME=template_api` | `<snake>_api` |
 | `back/src/main/resources/application.yml` | `${POSTGRES_DB:template_db}` | `:<snake>_db` |
-| `back/KEYCLOAK_SETUP.md` | `App DB: template_db`, `Realm: template`, `docker exec -it template_api`, `realms/template` | `<snake>_db`, `<slug>`, `<snake>_api`, `realms/<slug>` (keep the ASCII boxes aligned) |
+| `back/docker-compose.yml`, `back/docker-compose.prod.yml` | compose project `name: template` (prefixes volumes and networks) | `name: <slug>`; also the `template_pgdata` example in the dev file's comment |
+| `back/KEYCLOAK_SETUP.md` | `App DB: template_db`, `Realm: template` (ASCII boxes), `docker exec -it template_api`, `realms/template` | `<snake>_db`, `<slug>`, `<snake>_api`, `realms/<slug>`; re-pad each box line to its border's width |
+| same | env var table: `KEYCLOAK_REALM_NAME` default `` `template` `` | `` `<slug>` `` |
 
 ## Frontend branding
 
@@ -76,7 +78,7 @@ Tagline, description, colors, logo and images: `front/LANDING_SETUP.md` (optiona
 
 | File | What changes |
 |---|---|
-| `README.md` | rewritten as the project's README (see `SKILL.md` Step 3); realm name and `<slug>-realm.json` paths |
+| `README.md` | rewritten as the project's README (see `SKILL.md` Step 3); realm name (`KEYCLOAK_REALM_NAME=template`, "import the `template` realm") and `<slug>-realm.json` paths |
 | `CLAUDE.md` | title `# CLAUDE.md - <Name>`, overview from the app description, drop the "New project forked from this template?" line and the `/setup-environment` mention, `<slug>-realm.json` paths |
 | `back/README.md` | `keycloak/template-realm.json` (2 times) |
 | `.claude/agents/backend-developer.md` | `back/keycloak/template-realm.json` |

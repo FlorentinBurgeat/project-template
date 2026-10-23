@@ -83,12 +83,12 @@ cd back
 cp .env.template .env
 ```
 
-The defaults work out of the box for local development. Review at least:
+The template defaults (`admin` / `admin` logins, placeholder secret) work for local development; `/setup-environment` replaces the passwords and the client secret with generated values. Review at least:
 
 ```env
 POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB   # PostgreSQL credentials
 PGADMIN_DEFAULT_EMAIL / PGADMIN_DEFAULT_PASSWORD  # pgAdmin login
-KEYCLOAK_ADMIN_USERNAME / KEYCLOAK_ADMIN_PASSWORD # Keycloak admin console (admin/admin)
+KEYCLOAK_ADMIN_USERNAME / KEYCLOAK_ADMIN_PASSWORD # Keycloak admin console
 KEYCLOAK_REALM_NAME=template                      # must match "realm" in keycloak/template-realm.json
 KEYCLOAK_BACKEND_CLIENT_SECRET                    # change it outside local dev
 ```
@@ -139,8 +139,8 @@ pnpm dev
 |---------|-----|
 | Frontend | http://localhost:3000 |
 | Backend API | http://localhost:8080 |
-| Keycloak admin console | http://localhost:8081/admin (admin / admin) |
-| pgAdmin | http://localhost:5050 |
+| Keycloak admin console | http://localhost:8081/admin (credentials in `back/.env`) |
+| pgAdmin | http://localhost:5050 (credentials in `back/.env`) |
 
 Quick check that the backend and Keycloak are wired together:
 
@@ -316,7 +316,7 @@ This template includes:
 
 To enable Google, Facebook, or other identity providers:
 
-1. Access Keycloak Admin Console at http://localhost:8081/admin (admin/admin)
+1. Access Keycloak Admin Console at http://localhost:8081/admin (`KEYCLOAK_ADMIN_USERNAME` / `KEYCLOAK_ADMIN_PASSWORD` from `back/.env`)
 2. Navigate to your realm → Identity Providers
 3. Add a new identity provider (Google, Facebook, GitHub, etc.)
 4. Create OAuth app in [Google Cloud Console](https://console.cloud.google.com/), [Facebook Developers](https://developers.facebook.com/), or other provider

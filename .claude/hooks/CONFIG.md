@@ -58,7 +58,7 @@ Create or update `.claude/settings.json` in your project root:
 
 ```bash
 cd .claude/hooks
-npm install
+pnpm install
 ```
 
 ### 3. Set Execute Permissions

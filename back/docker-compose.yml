@@ -1,3 +1,6 @@
+# Compose project name: prefixes volumes and networks (template_pgdata, ...), so each project keeps its own data.
+name: template
+
 services:
     database:
         container_name: ${DOCKER_DATABASE_CONTAINER_NAME}

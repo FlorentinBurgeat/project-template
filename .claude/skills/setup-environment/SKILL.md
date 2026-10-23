@@ -18,8 +18,14 @@ Commands below use POSIX shell syntax; on Windows, run them through the Bash too
 1. `git status --porcelain` is empty. Otherwise stop: the user commits or stashes first, so every change of this skill is reviewable as one diff.
 2. Prerequisites (README "Prerequisites"): `docker compose version` (v2), `docker buildx version`, `docker info` (daemon running), `node -v` ≥ 20, `pnpm -v` ≥ 10, `java -version` ≥ 21, `mvn -v`. `java` on `PATH` and `JAVA_HOME` must both be JDK 21+ (`back/pom.xml` targets 21; an older `java` on `PATH` makes the surefire fork fail with "class file version 65.0"). Report every missing or too-old tool in one message, with how to install it, and stop.
 3. Detect a re-run: if `back/keycloak/template-realm.json` no longer exists, the rename is done. Tell the user, skip to Step 4, and reuse the names already in place (read them from `back/.env.template` and `back/pom.xml`).
+4. Detect an old stack **before renaming** (the compose project is still `template`, so compose can still find it):
+   - `docker ps -a --format '{{.Names}}\t{{.Label "com.docker.compose.project"}}\t{{.Status}}'`: containers of project `template`, or of `back` (stacks from template versions without a compose `name:`).
+   - Busy ports: `node -e "for(const p of [3000,5050,5432,8080,8081]){const s=require('net').createServer().once('error',()=>console.log('busy',p)).once('listening',()=>s.close()).listen(p)}"`.
+   - Leftover volumes: `docker volume ls -q --filter name=template_ --filter name=back_`.
 
-Done when: tree clean, every prerequisite present.
+   If any of these turns up something, show it and ask before deleting (it destroys that stack's local data). With approval: `cd back && docker compose down -v --remove-orphans`, plus `docker compose -p back down -v --remove-orphans` for a legacy stack, then `docker volume rm` the leftover volumes the user confirms. A busy port held by something else (e.g. a local PostgreSQL service) is for the user to stop.
+
+Done when: tree clean, every prerequisite present, the five ports free, and no old stack or volume left unless the user chose to keep it.
 
 ## Step 1 - Collect names and description
 
@@ -44,7 +50,7 @@ Apply every row of the rename map, section by section. `git mv` the realm file s
 
 Rewrite `README.md` into the project's own README:
 - Title `# <Name>`, intro paragraph and a **Features** list written from the description.
-- The template's stack bullets move under **Built on** (or merge into **Tech Stack**), worded as this project's stack.
+- The template's "🚀 Features" bullets (auth, Docker, i18n...) leave the Features list: fold the ones that matter into the existing "Tech Stack Details" section, which stays the single place for the stack. Add no separate "Built on" section.
 - Remove the template-only sections: "Start a New Project from This Template", "What This Template IS / IS NOT", "Roadmap", and the `/setup-environment` and rename-map links in "Documentation".
 - Keep Prerequisites, Installation, Keep Up with the Template, Project Structure (root `<slug>/`), Usage, Security, SSO, Troubleshooting, License.
 - Show the new title, intro and Features to the user and apply their edits before writing the rest.
@@ -68,7 +74,7 @@ Done when: `back/.env` exists, is git-ignored, and holds no template password or
 
 Run in this order (the theme JAR must exist before the Keycloak image builds):
 
-1. `cd keycloak-theme && pnpm install && pnpm build-keycloak-theme`, then check `keycloak-theme/dist_keycloak/keycloak-theme-for-kc-all-other-versions.jar` exists and `src/kc.gen.tsx` names `<slug>-theme`.
+1. `cd keycloak-theme && pnpm install && pnpm build-keycloak-theme > theme-build.log 2>&1`, then check `keycloak-theme/dist_keycloak/keycloak-theme-for-kc-all-other-versions.jar` exists and `src/kc.gen.tsx` names `<slug>-theme`. The build runs Maven and can fail once on a cold Maven cache: on failure, read the end of `theme-build.log` and retry once before diagnosing. Delete the log once the JAR exists.
 2. `cd front && pnpm install` (runs `nuxt prepare`).
 3. `cd back && ./mvnw -q dependency:go-offline` (local tests and IDE; the container builds by itself).
 4. `cd .claude/hooks && pnpm install` (the hooks run on `tsx`).
@@ -77,7 +83,7 @@ Done when: all four exit 0 and the JAR exists. On failure, show the error and fi
 
 ## Step 6 - Start the stack and smoke-test
 
-1. If `docker volume ls` shows volumes from an earlier run of this project, warn the user: Keycloak imports a realm only into a fresh volume, so a reset (`docker compose down -v`, deleting local data) is needed. Ask first.
+1. The stack now runs as compose project `<slug>` (volumes `<slug>_pgdata`, ...). On a re-run, if `docker volume ls -q --filter name=<slug>_` lists volumes and the realm name or secret changed since they were created, warn the user: Keycloak imports a realm only into a fresh volume, so `docker compose down -v` (deleting local data) is needed. Ask first.
 2. `cd back && docker compose up --build -d`. The first build takes minutes; poll `curl -sf http://localhost:8080/actuator/health` every ~10 s (up to ~5 min) until it returns `UP`.
 3. `curl -s "http://localhost:8080/api/auth/login?redirect_uri=http://localhost:3000/en/auth/callback"` returns a URL containing `/realms/<slug>/`.
 4. `cd back && ./mvnw test`, then `cd front && pnpm test --run && pnpm typecheck`.
@@ -90,7 +96,7 @@ Done when: health `UP`, the login URL points at `/realms/<slug>/`, and both test
 
 1. Leftover sweep, which must print nothing:
    ```bash
-   git grep -n -E "project-template|Project Template|template-realm|com\.template|template_db|template_api|template-api|Template Realm|realms/template|REALM_NAME[=:-]+template|\"realm\": \"template\"|<(artifactId|name)>template<|AppName|NomApp" \
+   git grep -n -E "project-template|Project Template|template-realm|com\.template|template_db|template_api|template-api|Template Realm|realms/template|REALM_NAME[=:-]+template|\"realm\": \"template\"|Realm: +template|\`template\`|^name: template$|<(artifactId|name)>template<|AppName|NomApp" \
      -- ':!LICENSE' ':!.claude/skills/setup-environment' ':!claude-code-infrastructure-showcase' ':!*lock*' ':!*.pyc' ':!back/src/test' ':!docs/adr' \
      | grep -v "FlorentinBurgeat/project-template.git"
    ```

@@ -10,7 +10,7 @@ Kotlin / Spring Boot API (Java 21, Spring Boot 3.5, Maven) with Exposed ORM, Pos
 ## Setup
 
 ```bash
-cp .env.template .env      # defaults work for local development
+cp .env.template .env      # template defaults work locally; /setup-environment generates the secrets
 docker compose up --build  # add -d to run in the background
 ```
 
@@ -19,7 +19,7 @@ Services started by `docker-compose.yml`:
 | Service | Default URL |
 |---------|-------------|
 | Backend API | http://localhost:8080 |
-| Keycloak (admin / admin) | http://localhost:8081 |
+| Keycloak (admin credentials in `.env`) | http://localhost:8081 |
 | pgAdmin | http://localhost:5050 |
 | PostgreSQL | localhost:5432 |
 

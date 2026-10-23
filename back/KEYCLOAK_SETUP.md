@@ -89,7 +89,7 @@ Login with admin credentials from `.env` file.
                             ▼                      ▼
                      ┌──────────────────────────────┐
                      │      PostgreSQL Database      │
-                     │  - App DB: wishlist_db       │
+                     │  - App DB: template_db       │
                      │  - Keycloak DB: keycloak_db  │
                      └──────────────────────────────┘
 ```
@@ -100,7 +100,7 @@ Login with admin credentials from `.env` file.
 ┌────────────────────────────────────────────┐
 │         Keycloak Instance (Shared)         │
 ├────────────────────────────────────────────┤
-│  Realm: project-template-dev              │
+│  Realm: template                           │
 │    - Users: Alice, Bob                     │
 │    - Clients: frontend-client, backend     │
 ├────────────────────────────────────────────┤

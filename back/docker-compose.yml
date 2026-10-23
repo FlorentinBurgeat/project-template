@@ -45,6 +45,9 @@ services:
             # Logging
             KC_LOG_LEVEL: ${KEYCLOAK_LOG_LEVEL:-INFO}
 
+            # Substituted into the realm import ("secret" of the backend client)
+            KEYCLOAK_BACKEND_CLIENT_SECRET: ${KEYCLOAK_BACKEND_CLIENT_SECRET:-change-this-secret-in-production}
+
         # Development mode (HTTP, relaxed hostname). --import-realm skips realms that already exist,
         # so changes to template-realm.json only apply to a fresh volume (docker compose down -v).
         command: start-dev --import-realm

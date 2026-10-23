@@ -3,7 +3,7 @@ spring:
     name: template-api
 
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:wishlist_db}
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:template_db}
     username: ${POSTGRES_USER:postgres}
     password: ${POSTGRES_PASSWORD:motdepasse}
     driver-class-name: org.postgresql.Driver

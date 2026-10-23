@@ -1,8 +1,10 @@
-# CLAUDE.md - Project Template
+# CLAUDE.md
 
 ## Project Overview
 
 **project-template** is a production-ready full-stack template to kickstart a web application: Keycloak authentication, modular architecture, and a working Docker-based dev setup. Clone it and focus on business features.
+
+> New project forked from this template? Run `/setup-environment`: it renames the project, creates `back/.env`, installs every dependency and starts the stack.
 
 > Architecture details: `back/CLAUDE.md`, `front/CLAUDE.md`, and the scoped rules in `.claude/rules/`.
 
@@ -43,7 +45,7 @@ Social login, SSO and other identity providers (Google, Facebook, SAML, LDAP...)
 
 ## Configuration & Local Setup
 
-Full steps are in `README.md`. In short:
+Full steps are in `README.md` (`/setup-environment` runs them for a new fork). In short:
 
 1. `cp back/.env.template back/.env` (env vars: DB credentials, Keycloak admin, `KEYCLOAK_REALM_NAME`, client secrets, ports)
 2. Build the Keycloak theme: `cd keycloak-theme && pnpm install && pnpm build-keycloak-theme`
@@ -85,8 +87,3 @@ The five canonical roles, recorded as a `Status:` line in each ticket. See `docs
 ### Domain docs
 
 Single-context: `GLOSSARY.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
-
----
-
-**Version**: 1.3
-**Last Updated**: October 2026

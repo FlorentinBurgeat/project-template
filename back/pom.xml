@@ -8,11 +8,11 @@
 		<version>3.5.5</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>FlorentinB</groupId>
+	<groupId>com.template</groupId>
 	<artifactId>template</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>template</name>
-	<description>Template Projet Back avec login</description>
+	<description>Backend API with Keycloak authentication</description>
 	<url/>
 	<licenses>
 		<license/>

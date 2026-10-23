@@ -27,17 +27,11 @@ On startup the stack creates the databases (`init-databases.sql`), imports the r
 
 Quick check: `curl http://localhost:8080/api/auth/login` returns the Keycloak login URL.
 
-### Upgrading an existing local stack
-
-Migration `V3` and the realm import (realm renamed `template-realm` → `template`, exact callback redirect URIs) changed on the `feat/register-and-login` branch. A database volume created by an earlier version can fail Flyway validation (checksum mismatch), and Keycloak keeps the realm it imported first. Recreate the volumes once, and update `KEYCLOAK_REALM_NAME` in an existing `.env`:
-
-```bash
-docker compose down -v && docker compose up --build
-```
+Keycloak imports the realm only into a fresh volume: after changing the realm file, `KEYCLOAK_REALM_NAME` or `KEYCLOAK_BACKEND_CLIENT_SECRET`, recreate it with `docker compose down -v && docker compose up --build`.
 
 ## Configuration
 
-All settings come from environment variables, documented in `.env.template`: container names, PostgreSQL credentials, ports, and `KEYCLOAK_*` (realm name, client IDs and secret, internal and external URLs). Change the admin credentials and `KEYCLOAK_BACKEND_CLIENT_SECRET` outside local development, and set `AUTH_COOKIE_SECURE=true` when served over HTTPS. `SPRING_PROFILES_ACTIVE=dev` enables debug logging (`application-dev.yml`).
+All settings come from environment variables, documented in `.env.template`: container names, PostgreSQL credentials, ports, and `KEYCLOAK_*` (realm name, client IDs and secret, internal and external URLs). `KEYCLOAK_BACKEND_CLIENT_SECRET` is also passed to the Keycloak container, which substitutes it into the realm import (`${KEYCLOAK_BACKEND_CLIENT_SECRET:...}` placeholder), so the backend and the realm always share the same secret. Change the admin credentials and that secret outside local development, and set `AUTH_COOKIE_SECURE=true` when served over HTTPS. `SPRING_PROFILES_ACTIVE=dev` enables debug logging (`application-dev.yml`).
 
 `keycloak.frontend.redirect-uris` in `application.yml` lists the exact frontend callback URLs (one per locale). The backend rejects any other `redirect_uri`, and the same list is registered on the Keycloak clients (keep `keycloak/template-realm.json` in sync).
 

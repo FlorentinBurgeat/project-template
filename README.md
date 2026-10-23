@@ -2,7 +2,7 @@
 
 A production-ready full-stack template to kickstart your next web application. Built with Nuxt 4, Kotlin Spring Boot, Keycloak, and PostgreSQL.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 ---
 
@@ -22,6 +22,22 @@ A production-ready full-stack template to kickstart your next web application. B
 
 ---
 
+## 🌱 Start a New Project from This Template
+
+1. Create your repository from this one (GitHub **Use this template**, or a fork) and clone it.
+2. Install the [prerequisites](#-prerequisites), open Claude Code at the repo root and run:
+
+   ```
+   /setup-environment My App Name
+   ```
+
+   It asks for your app's name and description, shows every place the project name is set (Keycloak realm and theme, database, Docker containers, Maven/Kotlin package, docs, frontend branding) and applies the changes once you confirm. Then it creates `back/.env` with generated secrets, installs every dependency, starts the Docker stack and runs the tests.
+3. Add the template as `upstream` to receive its updates (see [Keep Up with the Template](#-keep-up-with-the-template)).
+
+Prefer doing it by hand? Follow [Installation](#️-installation) below, and use [the rename map](.claude/skills/setup-environment/references/rename-map.md) for the list of places to rename.
+
+---
+
 ## 📋 Prerequisites
 
 Install the following before you begin:
@@ -32,7 +48,7 @@ Install the following before you begin:
 | **Docker Buildx** | any | Required by the Keycloak image build |
 | **Node.js** | 20+ | Frontend and Keycloak theme |
 | **pnpm** | 10+ (`npm i -g pnpm`) | Package manager (frontend and theme) |
-| **JDK** | 17+ | Building the Keycloak theme JAR (Keycloakify) |
+| **JDK** | 21+ | Building the Keycloak theme JAR (Keycloakify) and running backend tests locally (`java` on `PATH` and `JAVA_HOME` must both point to it) |
 | **Maven** | 3.8+ | Building the Keycloak theme JAR (the backend builds inside Docker) |
 | **Git** | any | |
 | **Claude Code CLI** | optional | MCP integration, see step 7 |
@@ -56,8 +72,8 @@ Ports used (must be free): `5432` (PostgreSQL), `5050` (pgAdmin), `8080` (backen
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/project-template.git
-cd project-template
+git clone <your-repo-url>
+cd <your-project>
 ```
 
 ### 2. Configure environment variables
@@ -105,7 +121,7 @@ The first start takes a few minutes (image builds, Maven dependencies). It will:
 
 Add `-d` to run in the background. To reset everything (including database data): `docker compose down -v`.
 
-> **Upgrading an older checkout?** The realm was renamed from `template-realm` to `template`. Update `KEYCLOAK_REALM_NAME` in your existing `back/.env`, then recreate the volumes once (`docker compose down -v`): Keycloak only imports a realm that doesn't exist yet. See [`back/README.md`](back/README.md#upgrading-an-existing-local-stack).
+> Keycloak only imports a realm that doesn't exist yet: after changing the realm file, `KEYCLOAK_REALM_NAME` or `KEYCLOAK_BACKEND_CLIENT_SECRET`, recreate the volumes once (`docker compose down -v`).
 
 ### 5. Start the frontend
 
@@ -138,10 +154,26 @@ The Nuxt UI MCP server is declared in `.mcp.json` at the repo root, so Claude Co
 
 ---
 
+## 🔄 Keep Up with the Template
+
+Your project's `origin` is your own repository. Add this template as a second remote, `upstream`, to pull its fixes and improvements:
+
+```bash
+git remote add upstream https://github.com/FlorentinBurgeat/project-template.git
+git fetch upstream
+git merge upstream/main
+```
+
+If your repository was created from a copy rather than a clone (e.g. GitHub **Use this template**), the histories are unrelated: add `--allow-unrelated-histories` to the first merge.
+
+Merge conflicts usually come from the names you changed during setup (realm, theme, Kotlin package, database and container names): keep your project's names and take the template's other changes. Merge into a branch first and run the tests before merging into `main`.
+
+---
+
 ## 📁 Project Structure
 
 ```
-project-template/
+<your-project>/
 ├── back/                  # Kotlin Spring Boot backend
 │   ├── src/main/
 │   │   ├── kotlin/
@@ -179,6 +211,7 @@ project-template/
 │   ├── rules/             # Path-scoped rules (front/**, back/**)
 │   └── skills/            # Nuxt, Kotlin/Spring Boot, Keycloak, ...
 │
+├── docs/                  # adr/ (architecture decisions), agents/ (agent workflow docs)
 ├── CLAUDE.md              # General project documentation
 └── README.md
 ```
@@ -335,7 +368,10 @@ To enable Google, Facebook, or other identity providers:
 - [Backend Architecture](./back/CLAUDE.md)
 - [Frontend Architecture (Nuxt 4)](./front/CLAUDE.md)
 - [General Documentation](./CLAUDE.md)
+- [Architecture Decision Records](./docs/adr/)
+- [Keycloak Setup](./back/KEYCLOAK_SETUP.md)
 - [Claude Code Skills](./.claude/skills/)
+  - [Setup Environment](./.claude/skills/setup-environment/) (`/setup-environment`)
   - [Nuxt 4 Development Guidelines](./.claude/skills/nuxt-dev-guidelines/)
   - [Kotlin Spring Boot Backend](./.claude/skills/kotlin-spring-boot-backend/)
   - [Keycloak IAM](./.claude/skills/keycloak/)
@@ -403,7 +439,7 @@ The `nuxt-ui` server is declared in `.mcp.json`. Check it is approved and connec
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
 ---
 

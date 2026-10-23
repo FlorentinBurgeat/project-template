@@ -97,7 +97,7 @@
       "clientId": "backend-service",
       "enabled": true,
       "publicClient": false,
-      "secret": "change-this-secret-in-production",
+      "secret": "${KEYCLOAK_BACKEND_CLIENT_SECRET:change-this-secret-in-production}",
       "serviceAccountsEnabled": true,
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": false,

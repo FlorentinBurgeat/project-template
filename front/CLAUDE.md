@@ -9,6 +9,7 @@ Nuxt 4 app (Vue 3 Composition API) using file-based routing, auto-imports, SSR a
 - **State**: `useState` (no Pinia)
 - **Data fetching**: `useFetch` / `useAsyncData`
 - **Server**: Nitro
+- **API types**: generated from the back contract (`pnpm api:generate`, `app/types/api.ts`, ADR 0004)
 
 ## Rules
 

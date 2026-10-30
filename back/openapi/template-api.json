@@ -1,0 +1,265 @@
+{
+  "components" : {
+    "schemas" : {
+      "AuthErrorResponse" : {
+        "description" : "Error body of the auth endpoints when Keycloak is unreachable",
+        "properties" : {
+          "error" : {
+            "type" : "string"
+          },
+          "errors" : {
+            "description" : "Always null: there is no field error",
+            "type" : "null"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "status" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "timestamp" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "error", "errors", "message", "status", "timestamp" ],
+        "type" : "object"
+      },
+      "CallbackRequest" : {
+        "properties" : {
+          "code" : {
+            "description" : "Authorization code Keycloak redirected back with",
+            "type" : "string"
+          },
+          "redirect_uri" : {
+            "description" : "Must be one of the allow-listed redirect URIs and the one used to start the flow; the first allow-listed URI when absent",
+            "type" : "string"
+          },
+          "state" : {
+            "description" : "`state` Keycloak redirected back with; must match the one issued by /login or /register",
+            "type" : "string"
+          }
+        },
+        "required" : [ "code", "state" ],
+        "type" : "object"
+      },
+      "LoginRedirectResponse" : {
+        "properties" : {
+          "redirect_url" : {
+            "description" : "Keycloak URL to send the browser to (carries the `state` and the PKCE challenge)",
+            "type" : "string"
+          }
+        },
+        "required" : [ "redirect_url" ],
+        "type" : "object"
+      },
+      "PublicTokenResponse" : {
+        "properties" : {
+          "access_token" : {
+            "description" : "JWT to send as `Authorization: Bearer <access_token>`; keep it in memory only",
+            "type" : "string"
+          },
+          "expires_in" : {
+            "description" : "Access token lifetime in seconds",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "token_type" : {
+            "description" : "Always `Bearer`",
+            "type" : "string"
+          }
+        },
+        "required" : [ "access_token", "expires_in", "token_type" ],
+        "type" : "object"
+      }
+    },
+    "securitySchemes" : {
+      "bearerAuth" : {
+        "bearerFormat" : "JWT",
+        "description" : "Keycloak access token returned by handleAuthCallback or refreshToken, sent as `Authorization: Bearer <token>`",
+        "scheme" : "bearer",
+        "type" : "http"
+      }
+    }
+  },
+  "info" : {
+    "title" : "Template API",
+    "version" : "v1"
+  },
+  "openapi" : "3.1.0",
+  "paths" : {
+    "/api/auth/callback" : {
+      "post" : {
+        "description" : "Checks `state` against the HTTP-only `auth_flow` cookie, then exchanges the code (with the PKCE verifier). The access token is returned in the body; the refresh token is set as an HTTP-only cookie. The `auth_flow` cookie is cleared.",
+        "operationId" : "handleAuthCallback",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CallbackRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PublicTokenResponse"
+                }
+              }
+            },
+            "description" : "The access token; the refresh token is in an HTTP-only cookie"
+          },
+          "400" : {
+            "description" : "`redirect_uri` is not in the allow-list, or the body is unreadable"
+          },
+          "401" : {
+            "description" : "Missing `auth_flow` cookie, `state` mismatch, or code rejected by Keycloak"
+          },
+          "503" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AuthErrorResponse"
+                }
+              }
+            },
+            "description" : "Keycloak is unreachable"
+          }
+        },
+        "summary" : "Exchange the authorization code for tokens",
+        "tags" : [ "auth" ]
+      }
+    },
+    "/api/auth/login" : {
+      "get" : {
+        "description" : "Returns the Keycloak login URL to redirect the browser to. Sets the short-lived HTTP-only `auth_flow` cookie holding the `state` and the PKCE verifier, which `handleAuthCallback` checks.",
+        "operationId" : "getLoginUrl",
+        "parameters" : [ {
+          "description" : "Where Keycloak redirects back; must be allow-listed (`keycloak.frontend.redirect-uris`). The first allow-listed URI when absent.",
+          "in" : "query",
+          "name" : "redirect_uri",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "Language of the Keycloak page; an unsupported locale is ignored and Keycloak uses its default.",
+          "in" : "query",
+          "name" : "locale",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LoginRedirectResponse"
+                }
+              }
+            },
+            "description" : "The Keycloak login URL"
+          },
+          "400" : {
+            "description" : "`redirect_uri` is not in the allow-list"
+          }
+        },
+        "summary" : "Start the login flow",
+        "tags" : [ "auth" ]
+      }
+    },
+    "/api/auth/logout" : {
+      "post" : {
+        "description" : "Revokes the refresh token when present and clears the HTTP-only refresh token cookie, even if the revocation fails.",
+        "operationId" : "logout",
+        "responses" : {
+          "204" : {
+            "description" : "Logged out; the refresh token cookie is cleared"
+          }
+        },
+        "summary" : "Log out",
+        "tags" : [ "auth" ]
+      }
+    },
+    "/api/auth/refresh" : {
+      "post" : {
+        "description" : "Uses the HTTP-only refresh token cookie and sets the rotated one. The cookie is cleared only when Keycloak rejects it; on an outage (503) it is kept.",
+        "operationId" : "refreshToken",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PublicTokenResponse"
+                }
+              }
+            },
+            "description" : "A new access token; the new refresh token is in an HTTP-only cookie"
+          },
+          "401" : {
+            "description" : "Missing refresh token cookie, or refresh token rejected by Keycloak (cookie cleared)"
+          },
+          "503" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AuthErrorResponse"
+                }
+              }
+            },
+            "description" : "Keycloak is unreachable"
+          }
+        },
+        "summary" : "Refresh the access token",
+        "tags" : [ "auth" ]
+      }
+    },
+    "/api/auth/register" : {
+      "get" : {
+        "description" : "Returns the Keycloak registration URL to redirect the browser to. Sets the short-lived HTTP-only `auth_flow` cookie holding the `state` and the PKCE verifier, which `handleAuthCallback` checks.",
+        "operationId" : "getRegistrationUrl",
+        "parameters" : [ {
+          "description" : "Where Keycloak redirects back; must be allow-listed (`keycloak.frontend.redirect-uris`). The first allow-listed URI when absent.",
+          "in" : "query",
+          "name" : "redirect_uri",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "Language of the Keycloak page; an unsupported locale is ignored and Keycloak uses its default.",
+          "in" : "query",
+          "name" : "locale",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LoginRedirectResponse"
+                }
+              }
+            },
+            "description" : "The Keycloak registration URL"
+          },
+          "400" : {
+            "description" : "`redirect_uri` is not in the allow-list"
+          }
+        },
+        "summary" : "Start the registration flow",
+        "tags" : [ "auth" ]
+      }
+    }
+  }
+}

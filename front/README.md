@@ -29,7 +29,9 @@ pnpm dev        # http://localhost:3000
 ## Structure
 
 - `app/pages/` - file-based routes (landing, dashboard, `auth/callback`)
-- `app/composables/useAuth.ts` - login, registration, callback, token refresh, logout
+- `app/components/` - `dummies/` (`_common/`, `layout/`, `landing/`, `<domain>/`) and `business/<module>/`
+- `app/composables/auth/useAuth.ts` - login, registration, callback, token refresh, logout
+- `app/types/api.ts` - generated from `back/openapi/template-api.json` by `pnpm api:generate` (never edited by hand)
 - `app/middleware/auth.ts` - protects authenticated routes
 - `i18n/` - translations (en, fr)
 

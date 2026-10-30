@@ -74,8 +74,7 @@
               "pathPatterns": [
                   "back/src/**/*.kt",
                   "backend/src/**/*.kt",
-                  "src/main/kotlin/**/*.kt",
-                  "**/features/**/*.kt"
+                  "src/main/kotlin/**/*.kt"
               ],
               "pathExclusions": [
                   "**/*Test.kt",

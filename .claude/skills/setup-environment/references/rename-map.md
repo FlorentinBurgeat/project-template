@@ -34,7 +34,7 @@ The realm's backend client `"secret"` stays `${KEYCLOAK_BACKEND_CLIENT_SECRET:..
 |---|---|---|
 | `keycloak-theme/vite.config.ts` | `themeName: "project-template-theme"` | `"<slug>-theme"` |
 | `keycloak-theme/src/kc.gen.tsx` | `"project-template-theme"` (2 times) | `"<slug>-theme"` (the theme build regenerates it too) |
-| `back/src/main/kotlin/features/keycloak/service/RealmInitializationService.kt` | `loginTheme = "project-template-theme"` | `"<slug>-theme"` |
+| `back/src/main/kotlin/com/<pkg>/auth/keycloak/RealmInitializationService.kt` (after the package move below) | `loginTheme = "project-template-theme"` | `"<slug>-theme"` |
 | `keycloak-theme/README.md` | `` `project-template-theme` `` (2 times), realm path `back/keycloak/template-realm.json` | `` `<slug>-theme` ``, `back/keycloak/<slug>-realm.json` |
 | `keycloak-theme/src/login/css/main.css` | header `Project Template - Keycloak Theme` | `<Name> - Keycloak Theme` |
 | `keycloak-theme/index.html` | `<title>Keycloak Theme Dev</title>` | `<Name> - Keycloak Theme Dev` |
@@ -47,7 +47,11 @@ The realm's backend client `"secret"` stays `${KEYCLOAK_BACKEND_CLIENT_SECRET:..
 | same | `<artifactId>template</artifactId>`, `<name>template</name>` | `<slug>` |
 | same | `<description>Backend API with Keycloak authentication</description>` | `<Name> backend API` |
 | same | `<start-class>com.template.ApplicationKt</start-class>` | `com.<pkg>.ApplicationKt` |
-| `back/src/main/kotlin/Application.kt` | `package com.template`, `"com.template"` in `scanBasePackages` and `basePackages` | `com.<pkg>` |
+| `back/src/{main,test}/kotlin/com/template/` | the directories | `git mv` → `com/<pkg>/` (main and test) |
+| every Kotlin file under `back/src/{main,test}/kotlin/com/<pkg>/` | `package com.template...`, `import com.template...`, `importPackages("com.template")` in `HexagonalArchitectureTest` | `com.<pkg>...` |
+| `back/src/main/kotlin/com/<pkg>/shared/OpenApiConfig.kt` | `Info().title("Template API")` | `"<Name> API"` |
+| `back/openapi/template-api.json` | the file name, `"title" : "Template API"` | `git mv` → `back/openapi/<slug>-api.json`; refresh it with `./mvnw test -Dtest=OpenApiContractTest -Dcontract.update=true` |
+| `back/src/test/kotlin/com/<pkg>/OpenApiContractTest.kt` | `Path.of("openapi", "template-api.json")`, `template-api.json` in the KDoc | `<slug>-api.json` |
 | `back/src/main/resources/application.yml` | `spring.application.name: template-api` | `<slug>-api` |
 | `back/src/test/resources/application-test.yml` | `name: template-api-test` | `<slug>-api-test` |
 
@@ -71,6 +75,8 @@ Unchanged: test fixtures using `template` as a sample realm (`JwtIssuerConfigTes
 |---|---|---|
 | `front/i18n/locales/en.json` | every `AppName` (`landing.appName`, FAQ, final CTA, copyright, SEO and dashboard titles) | `<Name>` |
 | `front/i18n/locales/fr.json` | every `NomApp` | `<Name>` |
+| `front/package.json` | `../back/openapi/template-api.json` in `api:generate` and `api:check` | `<slug>-api.json`, then `pnpm api:generate` |
+| `front/eslint.config.mjs` | comment `back/openapi/template-api.json` | `<slug>-api.json` |
 
 Tagline, description, colors, logo and images: `front/LANDING_SETUP.md` (optional follow-up).
 
@@ -81,7 +87,9 @@ Tagline, description, colors, logo and images: `front/LANDING_SETUP.md` (optiona
 | `README.md` | rewritten as the project's README (see `SKILL.md` Step 3); realm name (`KEYCLOAK_REALM_NAME=template`, "import the `template` realm") and `<slug>-realm.json` paths |
 | `CLAUDE.md` | title `# CLAUDE.md - <Name>`, overview from the app description, drop the "New project forked from this template?" line and the `/setup-environment` mention, `<slug>-realm.json` paths |
 | `back/README.md` | `keycloak/template-realm.json` (2 times) |
-| `.claude/agents/backend-developer.md` | `back/keycloak/template-realm.json` |
+| `.claude/agents/backend-developer.md` | `back/keycloak/template-realm.json`, `com.template` |
+| `.claude/rules/back-architecture.md`, `back-auth-keycloak.md`, `front-structure.md`, `.claude/skills/kotlin-spring-boot-backend/SKILL.md` | `com.template`, `com/template`, `template-api.json` | `com.<pkg>`, `com/<pkg>`, `<slug>-api.json` |
+| `docs/adr/0003-*.md`, `docs/adr/0004-*.md` | `com.template`, `template-api.json` | `com.<pkg>`, `<slug>-api.json` |
 | `docs/adr/0001-authentication-flow-and-hardening.md` | file paths `template-realm.json` only; the dated statements (e.g. `KEYCLOAK_REALM_NAME=template` for old stacks) are history and stay |
 
 Kept on purpose: the `upstream` URL `FlorentinBurgeat/project-template.git` in `README.md`, and `LICENSE`.

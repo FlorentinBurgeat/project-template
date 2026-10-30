@@ -1,3 +1,9 @@
+import type { LoginRedirectResponse, PublicTokenResponse } from './api'
+
+// API responses come from the generated contract (`types/api.ts`), never hand-written
+export type { LoginRedirectResponse, PublicTokenResponse }
+
+// Decoded Keycloak JWT payload (claims read from the access token), not an API response: hand-written on purpose
 export interface AuthUser {
   sub: string
   email: string
@@ -5,14 +11,4 @@ export interface AuthUser {
   given_name: string
   family_name: string
   email_verified: boolean
-}
-
-export interface PublicTokenResponse {
-  access_token: string
-  expires_in: number
-  token_type: string
-}
-
-export interface LoginRedirectResponse {
-  redirect_url: string
 }

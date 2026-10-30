@@ -6,7 +6,7 @@
           <AppLogo class="w-auto h-6 shrink-0" />
         </NuxtLink>
 
-        <LandingNavLinks />
+        <LandingNavLinks :links="landingConfig.navLinks" />
       </template>
 
       <template #right>
@@ -72,7 +72,9 @@
 </template>
 
 <script setup>
-import { landingStructure } from '~/landing.config'
+import { landingStructure, useLandingConfig } from '~/landing.config'
+
+const landingConfig = useLandingConfig()
 
 const { t, locale } = useI18n()
 const { isAuthenticated, user, login, register, logout } = useAuth()

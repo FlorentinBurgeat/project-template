@@ -25,12 +25,13 @@ Keycloak handles identity (OAuth2 / OpenID Connect). Each project fork can use i
 - `keycloak.url` (`KEYCLOAK_INTERNAL_URL`): backend → Keycloak over the Docker network (token, logout, admin API, JWKS).
 - `keycloak.external-url` (`KEYCLOAK_EXTERNAL_URL`): browser-facing URLs, and the JWT issuer (`iss` = `KC_HOSTNAME`). The resource server's `issuer-uri` must use it, otherwise every token is rejected.
 
-## Code (`/features/keycloak`)
+## Code (`com.template.auth`)
 
-- `KeycloakConfig` - admin client
+- `config/KeycloakConfig` - admin client, `config/SecurityConfig` - resource server
 - `RealmInitializationService` - on startup creates/configures the realm, frontend client (public SPA), backend client (confidential), token lifespans, OIDC mappers
 - `KeycloakAuthController` / `KeycloakAuthService` - OAuth2 flow and cookie handling (`KeycloakAuthExceptionHandler` maps outages to 503)
 - `KeycloakSecretsCheck` - fails startup under the `prod` profile when placeholder credentials are configured
+- `web/AuthOpenApiConfig` - publishes the `AuthErrorResponse` schema (503 body); the auth operations are published in the API contract (`getLoginUrl`, `getRegistrationUrl`, `handleAuthCallback`, `refreshToken`, `logout`, see ADR 0004) with no bearer requirement
 - `UserManagementService` - optional, for custom registration flows (default is Keycloak-managed registration)
 
 Read Keycloak settings through the typed `KeycloakProperties`, not `@Value`.

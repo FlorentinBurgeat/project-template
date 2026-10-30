@@ -46,9 +46,14 @@ The frontend also sends its current `locale`; if it is listed in `keycloak.realm
 
 ## Structure
 
-- `src/main/kotlin/config/` - security and database configuration
-- `src/main/kotlin/exception/` - global error handling
-- `src/main/kotlin/features/keycloak/` - authentication feature (config, controller, dto, service)
+Modular monolith (Spring Modulith), one hexagonal module per bounded context (ADR 0003):
+
+- `src/main/kotlin/com/template/Application.kt` - entry point
+- `src/main/kotlin/com/template/shared/` - technical module: `ErrorResponse`, `DatabaseConfig`, `JacksonConfig`, `OpenApiConfig`, `UserId`
+- `src/main/kotlin/com/template/auth/` - technical module: Keycloak (`config/`, `keycloak/`, `web/`)
+- `src/main/kotlin/com/template/<context>/` - a bounded context: `domain/<aggregate>/{model,logic,port}`, `application/`, `adapters/{web,persistence}`
+- `src/test/kotlin/com/template/` - `ModularityTest`, `HexagonalArchitectureTest`, `OpenApiContractTest` (tests need Docker: Testcontainers PostgreSQL)
+- `openapi/template-api.json` - API contract, refresh with `./mvnw test -Dtest=OpenApiContractTest -Dcontract.update=true` (ADR 0004)
 - `src/main/resources/db/migration/` - Flyway migrations
 - `keycloak/` - realm import and Keycloak image
 

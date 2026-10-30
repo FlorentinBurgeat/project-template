@@ -128,7 +128,7 @@ Server-provided messages rendered through `dangerouslySetInnerHTML` go through K
 **Follow-ups (not decided here)**
 
 - An API client wrapper that attaches the Bearer token to protected calls; no protected endpoint exists yet.
-- Enabling and fixing `GlobalExceptionHandler`, which is not component-scanned.
+- ~~Enabling and fixing `GlobalExceptionHandler`~~: deleted (ADR 0003). Its catch-all would turn Spring MVC errors into 500s. Rewrite it, without a catch-all, if a shared handler is needed.
 - Pre-existing type errors in `keycloak-theme` (`KcPage.tsx`, the social-provider class name in `Login.tsx`), and the theme's older TypeScript, Vite and React versions.
 - A `.gitattributes` file (`eol=lf`) as the root fix for line endings.
 - The alpha Nuxt modules (`@nuxt/a11y`, `@nuxt/hints`).

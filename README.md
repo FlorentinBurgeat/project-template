@@ -177,13 +177,14 @@ Merge conflicts usually come from the names you changed during setup (realm, the
 ├── back/                  # Kotlin Spring Boot backend
 │   ├── src/main/
 │   │   ├── kotlin/
-│   │   │   ├── config/        # Security, database
-│   │   │   ├── exception/     # Global error handling
-│   │   │   └── features/      # Feature-based modules
-│   │   │       └── keycloak/  # config, controller, dto, service
+│   │   │   └── com/template/  # Modular monolith (Spring Modulith)
+│   │   │       ├── shared/    # ErrorResponse, DatabaseConfig, JacksonConfig, OpenApiConfig
+│   │   │       ├── auth/      # Keycloak: config, keycloak, web
+│   │   │       └── <context>/ # One hexagonal module per bounded context
 │   │   └── resources/
 │   │       └── db/migration/  # Flyway migrations
 │   ├── keycloak/              # Realm import (template-realm.json)
+│   ├── openapi/               # API contract (template-api.json), checked by OpenApiContractTest
 │   ├── docker-compose.yml     # PostgreSQL, Keycloak, pgAdmin, backend
 │   ├── .env.template          # Environment variables
 │   ├── pom.xml
@@ -192,11 +193,11 @@ Merge conflicts usually come from the names you changed during setup (realm, the
 ├── front/                 # Nuxt 4 frontend
 │   ├── app/
 │   │   ├── pages/         # File-based routing
-│   │   ├── components/    # Auto-imported components
-│   │   ├── composables/   # Auto-imported composables (useAuth)
+│   │   ├── components/    # dummies/ (_common, layout, <domain>) and business/<module>/
+│   │   ├── composables/   # One folder per domain (auth/useAuth): use*.ts, _domain/, _api/, _config/
 │   │   ├── middleware/    # Route middleware
 │   │   ├── plugins/       # Vue plugins
-│   │   ├── types/         # TypeScript types
+│   │   ├── types/         # Shared types, generated API contract (api.ts)
 │   │   └── app.vue        # Root component
 │   ├── i18n/              # Translations (en, fr)
 │   ├── public/            # Static assets
@@ -222,19 +223,19 @@ Merge conflicts usually come from the names you changed during setup (realm, the
 
 ### Development Workflow
 
-#### Adding a New Backend Feature
+#### Adding a bounded context
 
-1. Create a new package under `/back/src/main/kotlin/features/feature-name`
-2. Implement controllers, services, models, mappers, and repositories
-3. Add database migration if needed in `/resources/db/migration`
-4. Restart the backend service
+1. Create a module `com.template.<name>` under `/back/src/main/kotlin/com/template/` with `domain/<aggregate>/{model,logic,port}`, `application/` and `adapters/{web,persistence}` (see `.claude/rules/back-architecture.md` and `docs/adr/0003-modular-monolith-hexagonal.md`)
+2. Add a Flyway migration if needed in `/resources/db/migration`
+3. Run `./mvnw test` (includes `ModularityTest` and `HexagonalArchitectureTest`; Docker required for Testcontainers)
+4. Refresh the API contract: `./mvnw test -Dtest=OpenApiContractTest -Dcontract.update=true`, then `pnpm api:generate` in `front/` (ADR 0004)
 
 #### Adding a New Frontend Page
 
 1. Create a new file in `/front/app/pages/` (e.g., `about.vue` → `/about`)
 2. Nuxt automatically generates routes based on file structure
-3. Create components in `/front/app/components/` (auto-imported)
-4. Add composables in `/front/app/composables/` for state management
+3. Create components in `/front/app/components/` (auto-imported): `dummies/` for presentational ones, `business/<module>/` for those with business knowledge
+4. Add composables in `/front/app/composables/<domain>/` for state management, with pure rules in `_domain/` and API mapping in `_api/`
 5. Define API routes in `/front/server/api/` if needed (prefixed with `/api/`)
 
 **Example:**
@@ -425,7 +426,7 @@ Check your `back/.env` configuration and ensure the PostgreSQL container is runn
 - Verify `KEYCLOAK_EXTERNAL_URL` in `back/.env` matches your Keycloak address (default `http://localhost:8081`)
 
 ### Frontend can't reach backend
-Verify `NUXT_API_BASE_URL` (default `http://localhost:8080`, used by the `/api/**` proxy in `front/server/api/[...path].ts`) and the CORS configuration in `back/src/main/kotlin/config/SecurityConfig.kt`
+Verify `NUXT_API_BASE_URL` (default `http://localhost:8080`, used by the `/api/**` proxy in `front/server/api/[...path].ts`) and the CORS configuration in `back/src/main/kotlin/com/template/auth/config/SecurityConfig.kt`
 
 ### Authentication redirect loop
 - Clear browser cookies and local storage

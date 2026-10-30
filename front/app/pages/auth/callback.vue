@@ -24,6 +24,7 @@
 </template>
 
 <script setup lang="ts">
+import type { Optional } from '~/types/optional'
 definePageMeta({
   layout: false
 })
@@ -34,7 +35,7 @@ const { handleCallback, isAuthenticated } = useAuth()
 
 // Authorization codes are single-use: remember the last one submitted so a remount
 // or back-navigation doesn't replay it (which Keycloak would reject)
-const lastSubmittedCode = useState<string | null>('auth:callback-code', () => null)
+const lastSubmittedCode = useState<Optional<string>>('auth:callback-code', () => undefined)
 
 const error = ref(false)
 

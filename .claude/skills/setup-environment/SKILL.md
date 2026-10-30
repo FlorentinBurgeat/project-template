@@ -96,7 +96,7 @@ Done when: health `UP`, the login URL points at `/realms/<slug>/`, and both test
 
 1. Leftover sweep, which must print nothing:
    ```bash
-   git grep -n -E "project-template|Project Template|template-realm|com\.template|template_db|template_api|template-api|Template Realm|realms/template|REALM_NAME[=:-]+template|\"realm\": \"template\"|Realm: +template|\`template\`|^name: template$|<(artifactId|name)>template<|AppName|NomApp" \
+   git grep -n -E "project-template|Project Template|template-realm|com\.template|template_db|template_api|template-api|Template API|com/template|Template Realm|realms/template|REALM_NAME[=:-]+template|\"realm\": \"template\"|Realm: +template|\`template\`|^name: template$|<(artifactId|name)>template<|AppName|NomApp" \
      -- ':!LICENSE' ':!.claude/skills/setup-environment' ':!claude-code-infrastructure-showcase' ':!*lock*' ':!*.pyc' ':!back/src/test' ':!docs/adr' \
      | grep -v "FlorentinBurgeat/project-template.git"
    ```

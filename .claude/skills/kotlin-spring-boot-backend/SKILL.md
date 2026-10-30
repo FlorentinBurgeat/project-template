@@ -26,168 +26,71 @@ Automatically activates when working on:
 
 ## Quick Start
 
-### New Backend Feature Checklist
+### New Bounded Context Checklist
 
-- [ ] **Package**: Create feature package under `/features/{feature-name}`
-- [ ] **Controller**: REST controller with `@RestController` and `@RequestMapping`
-- [ ] **Service**: Business logic with `@Service` and constructor injection
-- [ ] **Repository**: Database access with Exposed ORM
-- [ ] **Models**: Data classes for entities and DTOs
-- [ ] **Mapper**: Transform between DTOs and entities
-- [ ] **Migration**: Flyway SQL script if schema changes needed
-- [ ] **Tests**: Unit + integration tests
-- [ ] **Config**: Environment variables for configuration
+Convention: `.claude/rules/back-architecture.md` and `docs/adr/0003-modular-monolith-hexagonal.md`.
 
-### New Feature Package Structures
+- [ ] **Module**: top-level package `com.template.<name>`
+- [ ] **Domain**: `domain/<aggregate>/model` (data only, value classes), `logic` (pure functions), `port` (interfaces)
+- [ ] **Application**: `@Service` use cases depending on the domain only, returning sealed results
+- [ ] **Web adapter**: controller, request/response DTOs, mapper, scoped exception handler
+- [ ] **Persistence adapter**: Exposed tables, records, record mapper, repository implementing the port
+- [ ] **Migration**: Flyway SQL script if the schema changes
+- [ ] **Tests**: pure unit tests for `logic/`, API tests (Testcontainers), `ModularityTest`, `HexagonalArchitectureTest`
+- [ ] **API contract**: `@SecurityRequirement(name = BEARER_AUTH)` on protected controllers, refresh `openapi/template-api.json` (ADR 0004)
 
-**Simple Feature** (start here - no domain complexity):
+### Package Structure
+
 ```
-/features/{feature-name}/
-├── controllers/        # REST API endpoints
-├── services/           # Application services (orchestration)
-├── models/             # Entities and DTOs
-├── mappers/            # DTO ↔ Entity transformations
-├── repositories/       # Database access (Exposed)
-└── dto/                # API contracts (optional, can use models/)
-```
-
-**Complex Feature** (add domain layer when needed):
-```
-/features/{feature-name}/
-├── controllers/        # REST API endpoints
-├── services/           # Application services (orchestration)
-├── domain/             # Business logic & rules
-│   ├── aggregates/     # Aggregate roots (Order, ShoppingCart)
-│   ├── entities/       # Domain entities (OrderItem)
-│   └── valueobjects/   # Immutable values (Money, Email, Address)
-├── repositories/       # Database access (Exposed)
-└── dto/                # API contracts
-
-**Example 1: Simple Feature (Authentication)**
-```
-/features/authentication/
-├── controllers/        # AuthController.kt
-├── services/           # AuthService.kt
-├── models/             # User.kt, LoginRequest.kt, TokenResponse.kt
-├── mappers/            # UserMapper.kt
-└── repositories/       # UserRepository.kt
+com/template/<name>/
+├── domain/<aggregate>/
+│   ├── model/          # data class, value class, enum, sealed (no logic)
+│   ├── logic/          # pure functions: rules, calculations
+│   └── port/           # ItemRepository (interface)
+├── application/        # ItemService (@Service), sealed results
+└── adapters/
+    ├── web/            # Controller, ExceptionHandler, Request/Response, WebMapper
+    └── persistence/    # Tables, Records, RecordMapper, ExposedXxxRepository
 ```
 
-**Example 2: Complex Feature (Order Management)**
-```
-/features/order-management/
-├── controllers/        # OrderController.kt
-├── services/           # OrderService.kt (orchestration)
-├── domain/
-│   ├── aggregates/     # Order.kt (aggregate root with business rules)
-│   ├── entities/       # OrderItem.kt
-│   └── valueobjects/   # Money.kt, Address.kt, OrderStatus.kt
-├── repositories/       # OrderRepository.kt (saves whole aggregate)
-└── dto/                # CreateOrderRequest.kt, OrderResponse.kt
-```
+Technical modules without a domain: `shared/` (ErrorResponse, DatabaseConfig, JacksonConfig, OpenApiConfig, UserId) and `auth/`.
 
 ---
 
 ## Architecture Overview
 
-### Hybrid Feature-Based + DDD Architecture
-
-The backend follows a **feature-based architecture** with **selective DDD tactical patterns** when complexity warrants it.
-
-**Core Principles:**
-- **Isolation**: Each feature is independent and can be added/removed without affecting others
-- **Cohesion**: All elements related to a feature stay together
-- **Minimal coupling**: Features should have minimal dependencies on each other
-- **Selective complexity**: Start simple, add domain layer only when business logic requires it
-
-### Layered Architecture (Within Each Feature)
+**Modular monolith (Spring Modulith), hexagonal per bounded context.** Dependencies point inward: adapters -> application -> domain. The domain has no Spring, Exposed or Jackson. Aggregates are anemic: `model/` holds data, `logic/` holds pure functions. Use `@JvmInline value class` instead of primitives and `typealias`. Domain words in the project's business language, technical roles in English.
 
 ```
 HTTP Request
     ↓
-Controller (request handling)
+Controller (adapters/web: required fields, DTO -> domain)
     ↓
-Service (application orchestration)
+Service (application: use case, sealed result)
     ↓
-Domain (entities, aggregates, value objects) ← Optional, add when needed
+Domain logic (pure functions on the model)
     ↓
-Repository (data access)
-    ↓
-Database (Exposed ORM)
+Port ← ExposedRepository (adapters/persistence: records <-> domain)
 ```
 
-**Key Principle:** Each layer has ONE responsibility. Controllers handle HTTP. Services orchestrate. Domain models contain business logic. Repositories handle data access.
-
-### When to Use Domain Layer
-
-**Start without domain folder** (simple features):
-- Basic CRUD operations
-- Simple validation rules
-- Single entity features
-- No complex business rules
-
-**Add domain folder** when you have:
-- Multiple related entities needing consistency (Aggregates)
-- Complex business invariants
-- Rich behavior in models
-- Transaction boundaries across entities
-- Immutable value objects (Email, Money, Address)
-
-See [architecture-overview.md](architecture-overview.md) for complete details.
+> `examples.md` predates this convention (feature-based layout). Follow the rule above where they differ.
 
 ---
 
 ## Directory Structure
 
-**Hybrid Feature-Based + DDD** - Each business feature is self-contained. Add domain layer selectively:
-
 ```
 back/src/
-├── main/
-│   ├── kotlin/
-│   │   ├── features/
-│   │   │   ├── authentication/          # Simple feature (no domain layer)
-│   │   │   │   ├── controllers/         # AuthController.kt
-│   │   │   │   ├── services/            # AuthService.kt
-│   │   │   │   ├── models/              # User.kt, UserDTO.kt
-│   │   │   │   ├── mappers/             # UserMapper.kt
-│   │   │   │   └── repositories/        # UserRepository.kt
-│   │   │   │
-│   │   │   └── order-management/        # Complex feature (with domain layer)
-│   │   │       ├── controllers/         # OrderController.kt
-│   │   │       ├── services/            # OrderService.kt (orchestration)
-│   │   │       ├── domain/              # Business logic & rules
-│   │   │       │   ├── aggregates/      # Order.kt (aggregate root)
-│   │   │       │   ├── entities/        # OrderItem.kt
-│   │   │       │   └── valueobjects/    # Money.kt, Address.kt
-│   │   │       ├── repositories/        # OrderRepository.kt
-│   │   │       └── dto/                 # API contracts
-│   │   │
-│   │   ├── config/                      # Application configuration
-│   │   ├── security/                    # JWT, Spring Security config
-│   │   └── Application.kt               # Main Spring Boot app
-│   └── resources/
-│       ├── application.yml              # Spring configuration
-│       └── db/migration/                # Flyway migration files
-└── test/kotlin/features/
-    ├── authentication/                  # Feature-specific tests
-    │   ├── controllers/
-    │   └── services/
-    └── order-management/
-        ├── controllers/
-        ├── services/
-        └── domain/
+├── main/kotlin/com/template/
+│   ├── Application.kt
+│   ├── shared/            # ErrorResponse, DatabaseConfig, JacksonConfig, OpenApiConfig, UserId
+│   ├── auth/              # config/, keycloak/, web/
+│   └── example/           # bounded context (see Package Structure)
+├── main/resources/db/migration/   # Flyway
+└── test/kotlin/com/template/          # same tree, plus ModularityTest and HexagonalArchitectureTest
 ```
 
-**Naming Conventions:**
-- Controllers: `PascalCase` - `AuthController.kt`, `OrderController.kt`
-- Services: `PascalCase` - `AuthService.kt`, `OrderService.kt`
-- Repositories: `PascalCase` - `UserRepository.kt`, `OrderRepository.kt`
-- Models: `PascalCase` - `User.kt`, `UserDTO.kt`
-- Aggregates: `PascalCase` - `Order.kt`, `ShoppingCart.kt`
-- Value Objects: `PascalCase` - `Money.kt`, `Email.kt`, `Address.kt`
-- Mappers: `PascalCase` - `UserMapper.kt`
-- Tables (Exposed): `PascalCase` plural - `Users.kt`, `Orders.kt`
+**Naming Conventions:** `PascalCase` files. Controllers `XxxController`, use cases `XxxService`, ports `XxxRepository`, implementations `ExposedXxxRepository`, DTOs `XxxRequest` / `XxxResponse`, Exposed tables `Xxxs`, persistence shapes `XxxRecord`.
 
 ---
 

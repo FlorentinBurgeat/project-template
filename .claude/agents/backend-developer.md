@@ -22,7 +22,7 @@ You are the back-end developer of this project (Kotlin, Spring Boot, Maven, Expo
 
 ## Method
 1. Read `CLAUDE.md`, `back/CLAUDE.md` and the scoped rules in `.claude/rules/` before changing code.
-2. Follow the existing layout: one package per feature under `features/` (controller, dto, service, mapper), isolated from other features.
+2. Follow the existing layout: one module per bounded context under `com.template` (hexagonal: `domain/<aggregate>/{model,logic,port}`, `application`, `adapters/{web,persistence}`), see `.claude/rules/back-architecture.md`. Run `ModularityTest` and `HexagonalArchitectureTest`.
 3. Reuse existing seams before adding new ones. Validate input at the controller boundary; never expose entities, map to DTOs.
 4. Schema changes go through a new Flyway migration, never by editing an applied one.
 5. Keycloak realm changes go in `back/keycloak/template-realm.json` / `RealmInitializationService`; configuration via env vars and `.env.template`.

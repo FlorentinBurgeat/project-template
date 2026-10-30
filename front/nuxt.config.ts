@@ -20,6 +20,12 @@ export default defineNuxtConfig({
     apiBaseUrl: 'http://localhost:8080'
   },
 
+  components: [{ path: '~/components', pathPrefix: false }],
+
+  imports: {
+    dirs: ['~/composables/**/use*.{ts,js,mjs,mts}']
+  },
+
   css: ['~/assets/css/main.css'],
 
   routeRules: {

@@ -58,8 +58,9 @@ Ports: frontend 3000, backend 8080, Keycloak 8081, pgAdmin 5050, PostgreSQL 5432
 
 ## Development Principles
 
-- **Extensibility**: new backend feature = new package under `features/`; new frontend page = new file in `app/pages/`; new SSO provider = Keycloak configuration.
-- **Modularity**: features are isolated and can be removed or changed independently, with minimal cross-dependencies.
+- **Extensibility**: new backend bounded context = new hexagonal Spring Modulith module under `com.template` (`back-architecture.md`, ADR 0003); new frontend page = new file in `app/pages/`; new SSO provider = Keycloak configuration.
+- **Modularity**: modules only use each other's public API (base package) or application events; `ModularityTest` and `HexagonalArchitectureTest` enforce it.
+- **Shared contract**: the back publishes `back/openapi/template-api.json`; the front generates `app/types/api.ts` from it (ADR 0004).
 - **Maintainability**: predictable organization, clear separation of concerns, mappers to isolate data transformations.
 - **Developer experience**: clone, configure `.env`, `docker compose up`, start building features.
 

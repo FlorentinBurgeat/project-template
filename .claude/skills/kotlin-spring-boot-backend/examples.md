@@ -1,5 +1,7 @@
 # Real-World Examples - Kotlin/Spring Boot Backend
 
+> **Outdated layout.** These examples use the former feature-based structure. The current convention is a hexagonal module per bounded context: see `.claude/rules/back-architecture.md` and ADR 0003. Reuse the patterns, not the packages.
+
 **CRITICAL REMINDERS:**
 - **ALWAYS use UUID for IDs** ✅
 - **ALWAYS use Instant (UTC) for timestamps** ✅

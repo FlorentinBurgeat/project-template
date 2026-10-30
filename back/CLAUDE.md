@@ -1,12 +1,14 @@
 # CLAUDE.md - Backend
 
-Kotlin / Spring Boot backend with a feature-based architecture.
+Kotlin / Spring Boot backend: modular monolith (Spring Modulith), one hexagonal module per bounded context (ADR 0003).
 
 ## Tech Stack
 
 - **Language**: Kotlin, **Framework**: Spring Boot, **Build**: Maven
 - **ORM**: Exposed, **DB**: PostgreSQL, **Migrations**: Flyway
 - **Auth**: Keycloak (OpenID Connect), JWT validation via Spring Security
+- **API contract**: springdoc-openapi, committed as `openapi/template-api.json` (ADR 0004)
+- **Tests**: JUnit 5, MockK, Testcontainers (PostgreSQL), Spring Modulith + ArchUnit architecture tests
 
 ## Rules
 

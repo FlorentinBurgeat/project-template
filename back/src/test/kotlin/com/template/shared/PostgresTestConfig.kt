@@ -1,0 +1,15 @@
+package com.template.shared
+
+import org.springframework.boot.test.context.TestConfiguration
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection
+import org.springframework.context.annotation.Bean
+import org.testcontainers.containers.PostgreSQLContainer
+
+/** Real PostgreSQL 15 (the Compose image) with the real Flyway migrations. Needs Docker running. */
+@TestConfiguration(proxyBeanMethods = false)
+class PostgresTestConfig {
+
+    @Bean
+    @ServiceConnection
+    fun postgres(): PostgreSQLContainer<*> = PostgreSQLContainer("postgres:15")
+}

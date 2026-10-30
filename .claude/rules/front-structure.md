@@ -1,6 +1,7 @@
 ---
 paths:
-  - "front/**"
+  - "front/app/**"
+  - "front/server/**"
 ---
 
 # Frontend structure & routing

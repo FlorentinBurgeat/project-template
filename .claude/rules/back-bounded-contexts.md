@@ -1,6 +1,6 @@
 ---
 paths:
-  - "back/**"
+  - "back/src/**"
 ---
 
 # Bounded contexts: isolation, shared kernel, ACL

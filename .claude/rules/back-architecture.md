@@ -1,6 +1,6 @@
 ---
 paths:
-  - "back/**"
+  - "back/src/**"
 ---
 
 # Backend architecture
@@ -56,10 +56,7 @@ com/template/
 
 ## Adding a bounded context
 
-1. Create `com.template.<name>` with `domain/<aggregate>/{model,logic,port}`, `application/<Name>Service.kt` and `adapters/{web,persistence}` (`Exposed<Name>Repository : <Name>Repository`).
-2. Give the BC its own PostgreSQL schema and role, with its own Flyway location `db/migration/<name>/`, `DataSource` and Exposed `Database` (ADR 0005). Add a migration `V<n>__<name>.sql` if the schema changes.
-3. Talk to another module only through its base package (public API) or application events. Before sharing a model with another BC, follow the order in `back-bounded-contexts.md`.
-4. Tests: pure unit tests for `logic/`, one API test (Testcontainers, `shared/PostgresTestConfig`), then `ModularityTest` and `HexagonalArchitectureTest`; refresh the API contract.
+Follow the `create-bounded-context` skill: skeleton, persistence isolation (schema, role, Flyway, `DataSource`, Exposed `Database` per BC, ADR 0005), cross-BC access (`back-bounded-contexts.md`), tests (`ModularityTest`, `HexagonalArchitectureTest`), API contract refresh.
 
 ## Database
 

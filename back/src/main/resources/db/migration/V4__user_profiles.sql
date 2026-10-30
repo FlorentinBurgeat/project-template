@@ -1,15 +1,8 @@
--- V4: User profiles table (foundation for future business data)
--- Identity data lives in Keycloak; this table stores app-specific profile data.
-
-CREATE TABLE IF NOT EXISTS user_profiles (
-    id              BIGSERIAL PRIMARY KEY,
-    keycloak_user_id VARCHAR(255) NOT NULL UNIQUE,
-    username        VARCHAR(100),
-    bio             TEXT,
-    avatar_url      VARCHAR(500),
-    preferences     JSONB DEFAULT '{}'::jsonb,
-    created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX idx_user_profiles_keycloak_user_id ON user_profiles (keycloak_user_id);
+-- V4: No-op.
+--
+-- This migration used to create a 'user_profiles' table that no code used. Identity data
+-- lives in Keycloak, and app-specific profile data belongs to a profile bounded context,
+-- which owns its own schema and migrations (ADR 0005), so the template ships no table.
+--
+-- Kept as a no-op to preserve the version sequence (V3 -> V4 -> next).
+SELECT 1;

@@ -5,7 +5,7 @@ paths:
 
 # Backend architecture
 
-Modular monolith (Spring Modulith): one top-level package under `com.template` per **bounded context** (BC), plus technical modules. Each BC is hexagonal, with its domain split by aggregate. See ADR 0003.
+Modular monolith (Spring Modulith): one top-level package under `com.template` per **bounded context** (BC), plus technical modules. Each BC is hexagonal, with its domain split by aggregate. See ADR 0003. Persistence isolation, shared kernels and ACLs: `back-bounded-contexts.md` (ADR 0005, 0006).
 
 ```
 com/template/
@@ -21,11 +21,14 @@ com/template/
     adapters/
       web/              controller, scoped exception handler, request/response DTOs, mapper
       persistence/      Exposed tables, records, record mapper, repository implementation
+  kernel<A><B>/         shared kernel of BCs A and B (only when duplication is not enough): model/, logic/, no persistence
+  acl<A>to<B>/          external ACL, strong coupling only: implements the SPIs that A and B define in their domain (the usual ACL is a port plus an adapter inside the BC)
 ```
 
 ## Dependency rules (enforced by `ModularityTest` and `HexagonalArchitectureTest`)
 
-- Modules: no cycle, and a module only uses another module's base package (its public API). Sub-packages are internal. Talk to another module through its public API or an application event (`ApplicationEventPublisher` + `@ApplicationModuleListener`); never read its tables.
+- Modules: no cycle, and a module only uses another module's base package (its public API). Sub-packages are internal. Talk to another module through its public API or an application event (`ApplicationEventPublisher` + `@ApplicationModuleListener`); never read its tables. The only other exposure is a BC's SPI (a named interface) for an ACL.
+- A BC never imports another BC's types, and never carries another BC's concept as a primitive. A shared kernel depends on no BC; no BC depends on an ACL.
 - `auth` and `shared` are technical modules: no domain, no ports. `shared` is used by every BC; keep it tiny.
 - `domain` is pure Kotlin: no Spring, Exposed or Jackson, and no dependency on `application` or `adapters`.
 - `model` depends on neither `logic` nor `port`; `logic` does not depend on `port` (only `application` calls ports).
@@ -54,13 +57,14 @@ com/template/
 ## Adding a bounded context
 
 1. Create `com.template.<name>` with `domain/<aggregate>/{model,logic,port}`, `application/<Name>Service.kt` and `adapters/{web,persistence}` (`Exposed<Name>Repository : <Name>Repository`).
-2. Add a Flyway migration `V<n>__<name>.sql` if the schema changes.
-3. Talk to another module only through its base package (public API) or application events.
+2. Give the BC its own PostgreSQL schema and role, with its own Flyway location `db/migration/<name>/`, `DataSource` and Exposed `Database` (ADR 0005). Add a migration `V<n>__<name>.sql` if the schema changes.
+3. Talk to another module only through its base package (public API) or application events. Before sharing a model with another BC, follow the order in `back-bounded-contexts.md`.
 4. Tests: pure unit tests for `logic/`, one API test (Testcontainers, `shared/PostgresTestConfig`), then `ModularityTest` and `HexagonalArchitectureTest`; refresh the API contract.
 
 ## Database
 
-- PostgreSQL + Flyway; migrations are versioned (`V1__initial_schema.sql`, `V2__...`) and applied on startup.
+- PostgreSQL + Flyway; migrations are versioned (`V1__initial_schema.sql`, `V2__...`) and applied on startup, per BC.
+- One schema and one role per BC, no FK/`JOIN`/view across schemas, no transaction across BCs (ADR 0005).
 - Exposed (DSL or DAO) for type-safe queries, inside `adapters/persistence` only.
 - Tests run against a real PostgreSQL through Testcontainers (Docker required).
 

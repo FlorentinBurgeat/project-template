@@ -1,6 +1,7 @@
 ---
 paths:
-  - "back/**"
+  - "back/keycloak**"
+  - "back/src/**"
 ---
 
 # Backend authentication (Keycloak)
